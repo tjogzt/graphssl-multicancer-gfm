@@ -1,0 +1,55 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
+\usepackage{parskip}
+\pagestyle{empty}
+\begin{document}
+
+\noindent\today
+
+\medskip
+\noindent The Editors\\
+\textit{Cell Reports Methods}
+
+\medskip
+\noindent\textbf{Re: submission of an Article --- ``Self-Supervised Pretraining on Multi-Cancer Molecular Networks: Task Design Principles and the Role of Protein Language Model Features''}
+
+\medskip
+Dear Editors of Cell Reports Methods,
+
+We submit the enclosed manuscript for consideration as an Article in \textit{Cell Reports Methods} (Methods Track). The work is authored by Qingqing Mo, Pingbo Chen, Cheng Xu, Ya Wang, Ting Hu, Qian Sun, and Tao Zhu.
+
+\textbf{Headline findings.} We report three evidence-based results that delimit where graph self-supervised learning (SSL) adds value on top of fixed ESM-2 protein language model (PLM) features across multi-cancer molecular networks. (i) The reconstruction-first objective (NAMR) is the sole seed-stable encoder-quality driver, yielding held-out PPI link-prediction AUC 0.842 $\pm$ 0.016 across five equal-budget seeds; both CSP and the C3L contrastive loss underperform by margins of 0.021 and 0.046 respectively. (ii) PLM feature information content is necessary but not sufficient: replacing ESM-2 with random initialisation collapses NAMR performance to the 0.662 structural-baseline level, and the C3L contrastive objective never detaches from that baseline under any feature regime --- formally ruled out via 17 equal-FLOP ablation arms. (iii) CSP$+$NAMR joint pipelines are not universally reliable; they require a skip-decoder two-condition rejection filter, with one confirmed trigger case (\texttt{csp\_namr\_skipdiag\_s42.pt}) disclosed alongside the full 96-checkpoint registry.
+
+\textbf{Why \textit{Cell Reports Methods} (Methods Track fit).} This submission maps cleanly onto the journal's Methods Track scope and editorial values at three levels. (1) \textit{Task-design methodology for biomedical graph SSL.} Rather than proposing a single new architecture, we deliver three explicit, testable task-design Guidelines (two STRONG, one CONDITIONAL) plus a pre-specified Level-1/2/3 three-tier analysis hierarchy, all anchored to an equal-budget five-seed ablation protocol (seeds 42/7/123/21/99). Methods-readers value exactly this kind of protocol-level guidance, not yet another encoder with an unreported training budget. (2) \textit{Full reproducibility packaged as an R wrapper.} We ship a minimal R-language entry-point (\texttt{R/RunMultiCancerSSL.R}) and a 10-command shell recipe (\texttt{README.md} + \texttt{Makefile}) that regenerate every figure, table, and in-text number from raw data downloads (TCGA/UCSC Xena, STRING v12, GDSC2, GTEx, METABRIC via cBioPortal, ESM-2 weights), with an accompanying 96-row checkpoint provenance registry serialized as JSON. This directly satisfies the \textit{Cell Reports Methods} Methods Track criterion that end-to-end reproduction must be a single-click or 10-command proposition. (3) \textit{STAR Methods-ready reporting with a full Key Resources Table and explicitly documented boundary negatives.} We separate patient-level, drug-response, and gene-level scopes as declared Limitations rather than inflating headline claims, and we package the entire Methods section as STAR Methods with a 30-row Key Resources Table (Chemicals, Assays, 6 Deposited datasets, Cell lines, Oligos, 7 Software packages, and 2 Other categories) formatted to match the journal's exact template. Zero administrative IRB-dbGaP approvals are required for the secondary analysis of these publicly released, fully de-identified cohorts, per journal policy.
+
+\textbf{Manuscript structure check against Final File Checklist.} The submitted Article PDF follows the 16-section Cell Reports Methods order exactly: (1) Title page with designated Lead Contact footnote; (2) 4 Highlights bullets ($\le$85 chars each, third person); (3) 106-word single-paragraph Summary ($\le$150 words); (4) Motivation; (5) Introduction; (6) Results; (7) Discussion; (8) Resource Availability (Lead Contact / Materials Availability / Data \& Code Availability --- including the R wrapper and 10-command reproducibility recipe, plus permanent Zenodo/Software Heritage depositions); (9) Limitations of Study (seven numbered items, including the 7-tissue phantom-edge sensitivity map with quantitative percentages); (10) Acknowledgements; (11) Author Contributions (CRediT); (12) Declaration of Interests (ICMJE-completed); (13) STAR Methods (leading with the 30-row Key Resources Table and closing with an Ethics-and-secondary-use-compliance subsection written to the zero-redaction public-cohort policy); (14) References. Title length is 134 chars ($\le$145), Summary is 106 words ($\le$150), and body text is comfortably under the 7,000-word Article ceiling.
+
+\textbf{Funding.} This work was supported by the National Natural Science Foundation of China (NSFC) under grants 82403759 (to Cheng Xu) and 82403616 (to Ya Wang); no additional funding was received for this study. The funders had no role in study design, data collection and analysis, interpretation, writing of the report, or the decision to submit the paper for publication. The corresponding author (Tao Zhu) had full access to all data in the study and final responsibility for the decision to submit for publication.
+
+\textbf{Declarations.} This manuscript is original, has not been published previously, and is not under consideration elsewhere. All seven authors have approved the submission and declare no competing interests. The study analyses publicly available, fully de-identified, previously published datasets (TCGA via UCSC Xena and GDC, STRING v12, GDSC2 via Sanger FTP, GTEx v8 via GTEx Portal, METABRIC via cBioPortal, ESM-2 weights via GitHub); no new human-subject data were generated, and per Common Rule 45 CFR 46.102(d)(2), the Helsinki Declaration (2013 revision), and China NHC Order No. 50, the secondary analysis of such data does not require prospective institutional ethics committee review --- consistent with \textit{Cell Reports Methods} policy.
+
+\medskip
+We would be glad to suggest reviewers on request and are happy to provide any further material the editors may need.
+
+\medskip
+\noindent\textbf{Author contact information (all authors share identical affiliations).}
+Qingqing Mo \href{mailto:qingqingmo520@tjh.tjmu.edu.cn}{qingqingmo520@tjh.tjmu.edu.cn};
+Pingbo Chen \href{mailto:supercpb520@163.com}{supercpb520@163.com};
+Cheng Xu \href{mailto:watt15629030676@tjh.tjmu.edu.cn}{watt15629030676@tjh.tjmu.edu.cn};
+Ya Wang \href{mailto:misswangya@hotmail.com}{misswangya@hotmail.com};
+Ting Hu \href{mailto:huting_tj@163.com}{huting\_tj@163.com};
+Qian Sun \href{mailto:sunqian@tjh.tjmu.edu.cn}{sunqian@tjh.tjmu.edu.cn}.\\
+\textit{Affiliation 1.} Department of Obstetrics and Gynecology, National Clinical Research Center for Obstetrics and Gynecology, Tongji Hospital, Tongji Medical College, Huazhong University of Science and Technology, Wuhan, China.\\
+\textit{Affiliation 2.} Key Laboratory of Cancer Invasion and Metastasis (Ministry of Education), Hubei Key Laboratory of Tumor Invasion and Metastasis, Tongji Hospital, Tongji Medical College, Huazhong University of Science and Technology, Wuhan, China.
+
+\medskip
+\noindent Yours sincerely,
+
+\medskip
+\noindent Qingqing Mo, Pingbo Chen, Cheng Xu, Ya Wang, Ting Hu, Qian Sun, Tao Zhu\\
+\noindent\textit{Corresponding and Lead Contact:} Tao Zhu, \href{mailto:zhutao@tjh.tjmu.edu.cn}{zhutao@tjh.tjmu.edu.cn} (ORCID 0009-0001-0779-2245)
+
+\end{document}

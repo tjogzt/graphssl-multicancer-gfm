@@ -1,0 +1,92 @@
+# =============================================================================
+# .gitignore · GraphSSL-MultiCancer-GFM (GitHub upload filter)
+#
+# Rule: keep the repository under ~200 MB upload for reproducibility;
+#       large binaries (checkpoints, raw data, tarballs) live on Zenodo with SHA256.
+# =============================================================================
+
+# ---- Virtual environments
+.venv/
+venv/
+env/
+.env
+
+# ---- Python bytecode + caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- R caches
+.Rproj.user
+.Rhistory
+.RData
+.rds.user
+*.Rproj*
+*.rdb
+*.rdx
+
+# ---- IDE / editor state
+.idea/
+.vscode/
+.jspace/
+.paper/
+.trae/
+.DS_Store
+Thumbs.db
+
+# ---- Raw data (raw/ stays on Zenodo bundle2, not in GitHub)
+data/raw/
+!data/raw/README.md
+!data/raw/MANIFEST.txt
+
+# ---- Processed tensor products (most in Zenodo bundle2)
+data/processed/*.pt
+data/processed/*.npy
+data/processed/*.pkl
+data/processed/*.rds
+!data/processed/README.md
+
+# ---- Model checkpoints / embeddings / loss arrays (Zenodo only)
+models/checkpoints/*.pt
+results/ablation_real/*.pt
+results/ablation_real/*.log
+results/embeddings/*.npy
+results/control/*.pt
+results/control/*.npy
+results/holdout/*.pt
+results/featscan/*.pt
+results/featscan/*.log
+results/checkpoints/*.pt
+cloud_results/*.npy
+cloud_results/*.pt
+
+# ---- Heavy figure bitmaps (keep figures for reproducibility, but exclude duplicates)
+archive/*.pdf
+archive/figures/
+archive/root_duplicates/
+archive/legacy_scripts/
+archive/legacy_tests/
+archive/server_package/
+archive/tmp/
+archive/manuscript_stale/*.aux
+archive/manuscript_stale/*.log
+archive/manuscript_stale/*.out
+archive/manuscript_stale/*.toc
+archive/manuscript_stale/*.gz
+archive/manuscript_stale/*.pdf
+archive/.*
+
+# ---- Manuscript TeX auxiliaries (PDF stays ONLY under manuscript/ for Zenodo bundle1)
+manuscript/*.aux
+manuscript/*.log
+manuscript/*.out
+manuscript/*.toc
+manuscript/.*
+
+# ---- Cloud / server caches
+*.swp
+*.swo
+*~

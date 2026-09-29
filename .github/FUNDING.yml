@@ -1,0 +1,9 @@
+# These are supported funding model platforms
+# National Natural Science Foundation of China (NSFC) — two Young Scientist Grants
+# GitHub does not have a native NSFC badge, so we use custom and link to abstract pages.
+
+custom:
+  # NSFC Young Scientist Grant to Cheng Xu:
+  - "https://nsfc.gov.cn — Award #82403759"
+  # NSFC Young Scientist Grant to Ya Wang:
+  - "https://nsfc.gov.cn — Award #82403616"

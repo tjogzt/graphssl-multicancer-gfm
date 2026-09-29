@@ -1,0 +1,19 @@
+# Default code owners for GraphSSL-MultiCancer-GFM
+# Line syntax: <pattern> <@owner(s)
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# NOTE: GitHub user = tjogzt (Tao Zhu, corresponding author).
+#       Replace with team handle if a GitHub Org is created later.
+
+*       @tjogzt
+
+# Reproduction-critical paths
+R/      @tjogzt
+scripts/ @tjogzt
+tests/   @tjogzt
+Makefile  @tjogzt
+requirements.txt @tjogzt
+
+# Manuscript / CRM Methods Track)
+manuscript/ @tjogzt
+docs/       @tjogzt

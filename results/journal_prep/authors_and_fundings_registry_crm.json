@@ -1,0 +1,176 @@
+{
+  "_schema_version": "AUTHOR_FUNDING_REGISTRY_v1.0_CRM_20260929",
+  "_generated_at": "2026-09-29",
+  "authors_count": 7,
+  "corresponding_author_count": 1,
+  "authors": [
+    {
+      "order": 1,
+      "fn_cn": "墨青青",
+      "family_cn": "墨",
+      "given_cn": "青青",
+      "fn_en": "Qingqing Mo",
+      "last": "Mo",
+      "first": "Qingqing",
+      "email": "qingqingmo520@tjh.tjmu.edu.cn",
+      "orcid": null,
+      "corresponding": false,
+      "shared_first": false,
+      "role_tag": "First Author · Data Curation · Methodology",
+      "affil": [
+        1,
+        2
+      ]
+    },
+    {
+      "order": 2,
+      "fn_cn": "陈平波",
+      "family_cn": "陈",
+      "given_cn": "平波",
+      "fn_en": "Pingbo Chen",
+      "last": "Chen",
+      "first": "Pingbo",
+      "email": "supercpb520@163.com",
+      "orcid": null,
+      "corresponding": false,
+      "shared_first": false,
+      "role_tag": "Formal Analysis · Visualization",
+      "affil": [
+        1,
+        2
+      ]
+    },
+    {
+      "order": 3,
+      "fn_cn": "徐成",
+      "family_cn": "徐",
+      "given_cn": "成",
+      "fn_en": "Cheng Xu",
+      "last": "Xu",
+      "first": "Cheng",
+      "email": "watt15629030676@tjh.tjmu.edu.cn",
+      "orcid": null,
+      "corresponding": false,
+      "shared_first": false,
+      "role_tag": "Project Administration · NSFC 82403759 PI",
+      "affil": [
+        1,
+        2
+      ],
+      "funding": {
+        "type": "NSFC",
+        "no": "82403759",
+        "pi_cn": "徐成"
+      }
+    },
+    {
+      "order": 4,
+      "fn_cn": "王亚",
+      "family_cn": "王",
+      "given_cn": "亚",
+      "fn_en": "Ya Wang",
+      "last": "Wang",
+      "first": "Ya",
+      "email": "misswangya@hotmail.com",
+      "orcid": null,
+      "corresponding": false,
+      "shared_first": false,
+      "role_tag": "Investigation · NSFC 82403616 PI",
+      "affil": [
+        1,
+        2
+      ],
+      "funding": {
+        "type": "NSFC",
+        "no": "82403616",
+        "pi_cn": "王亚"
+      }
+    },
+    {
+      "order": 5,
+      "fn_cn": "胡婷",
+      "family_cn": "胡",
+      "given_cn": "婷",
+      "fn_en": "Ting Hu",
+      "last": "Hu",
+      "first": "Ting",
+      "email": "huting_tj@163.com",
+      "orcid": null,
+      "corresponding": false,
+      "shared_first": false,
+      "role_tag": "Resources · Validation",
+      "affil": [
+        1,
+        2
+      ]
+    },
+    {
+      "order": 6,
+      "fn_cn": "孙茜",
+      "family_cn": "孙",
+      "given_cn": "茜",
+      "fn_en": "Qian Sun",
+      "last": "Sun",
+      "first": "Qian",
+      "email": "sunqian@tjh.tjmu.edu.cn",
+      "orcid": null,
+      "corresponding": false,
+      "shared_first": false,
+      "role_tag": "Supervision (Clinical) · Writing – Review & Editing",
+      "affil": [
+        1,
+        2
+      ]
+    },
+    {
+      "order": 7,
+      "fn_cn": "朱涛",
+      "family_cn": "朱",
+      "given_cn": "涛",
+      "fn_en": "Tao Zhu",
+      "last": "Zhu",
+      "first": "Tao",
+      "email": "zhutao@tjh.tjmu.edu.cn",
+      "orcid": "0009-0001-0779-2245",
+      "corresponding": true,
+      "shared_first": false,
+      "role_tag": "Corresponding Author · Conceptualization · Funding Acquisition · Supervision (Overall)",
+      "affil": [
+        1,
+        2
+      ]
+    }
+  ],
+  "affiliations": {
+    "1": "Department of Obstetrics and Gynecology, National Clinical Research Center for Obstetrics and Gynecology, Tongji Hospital, Tongji Medical College, Huazhong University of Science and Technology, Wuhan 430030, Hubei Province, China",
+    "2": "Key Laboratory of Cancer Invasion and Metastasis (Ministry of Education), Hubei Key Laboratory of Tumor Invasion and Metastasis, Tongji Hospital, Tongji Medical College, Huazhong University of Science and Technology, Wuhan 430030, Hubei Province, China"
+  },
+  "fundings": [
+    {
+      "funder_en": "National Natural Science Foundation of China (NSFC)",
+      "funder_cn": "国家自然科学基金青年科学基金项目",
+      "award_no": "82403759",
+      "pi_en": "Cheng Xu",
+      "pi_cn": "徐成",
+      "desc_en": "Role of Graph Self-Supervised Learning-Guided Multi-Omics Integration in Ovarian Cancer Metastasis Prognosis"
+    },
+    {
+      "funder_en": "National Natural Science Foundation of China (NSFC)",
+      "funder_cn": "国家自然科学基金青年科学基金项目",
+      "award_no": "82403616",
+      "pi_en": "Ya Wang",
+      "pi_cn": "王亚",
+      "desc_en": "Single-Cell Transcriptomic Atlas and Immune Microenvironment Subtyping for High-Grade Serous Ovarian Carcinoma"
+    }
+  ],
+  "crm_author_list_flat_comma": "Qingqing Mo, Pingbo Chen, Cheng Xu, Ya Wang, Ting Hu, Qian Sun, Tao Zhu",
+  "crm_author_contribution_order": [
+    "1. Qingqing Mo: First Author · Data Curation · Methodology",
+    "2. Pingbo Chen: Formal Analysis · Visualization",
+    "3. Cheng Xu: Project Administration · NSFC 82403759 PI",
+    "4. Ya Wang: Investigation · NSFC 82403616 PI",
+    "5. Ting Hu: Resources · Validation",
+    "6. Qian Sun: Supervision (Clinical) · Writing – Review & Editing",
+    "7. Tao Zhu: Corresponding Author · Conceptualization · Funding Acquisition · Supervision (Overall)"
+  ]
+}

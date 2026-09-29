@@ -1,0 +1,1057 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.0cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs,array,longtable}
+\setlength{\tabcolsep}{3pt}
+\setlength{\emergencystretch}{2em}   % supplementary tables are wide; default 6pt overflows the 6.3in block
+\usepackage{placeins}
+\usepackage{float}
+\usepackage[hidelinks]{hyperref}
+\usepackage{bookmark}
+\usepackage{url}
+\usepackage{caption}
+% ---------------------------------------------------------------- automatic supplementary numbering
+% Review item 8.1: no hand-written S-numbers anywhere.  Floats are numbered by
+% LaTeX and every cross-reference (including from the main text, via xr-hyper)
+% is resolved from the supplementary .aux file, so reordering the supplementary
+% cannot desynchronise a number.
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\captionsetup[table]{name=Supplementary Table,labelsep=colon}
+\captionsetup[figure]{name=Supplementary Fig.,labelsep=colon}
+\newcounter{suppnote}
+\newcommand{\suppnotesection}[2]{\refstepcounter{suppnote}\label{#2}\section*{Supplementary Note \thesuppnote: #1}}
+\newcommand{\supptab}[1]{Supplementary Table~\ref{#1}}
+\newcommand{\supptabs}[1]{Supplementary Tables~\ref{#1}}
+\newcommand{\supptabrange}[2]{Supplementary Tables~\ref{#1}--\ref{#2}}
+\newcommand{\suppfig}[1]{Supplementary Fig.~\ref{#1}}
+\newcommand{\suppnote}[1]{Supplementary Note~\ref{#1}}
+\usepackage{fancyhdr}
+\pagestyle{fancy}\fancyhf{}
+\fancyhead[L]{\small Supplementary Information: Self-Supervised Pretraining on Multi-Cancer Molecular Networks}
+\fancyhead[R]{\small}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\title{\textbf{Supplementary Information}\\[3pt]\large Self-Supervised Pretraining on Multi-Cancer Molecular Networks: Task Design Principles and the Role of Protein Language Model Features}
+\author{Qingqing Mo$^{1,2,\dagger}$ \quad Pingbo Chen$^{1,2,\dagger}$ \quad Cheng Xu$^{1,2,\dagger}$ \quad Ya Wang$^{1,2}$ \quad Ting Hu$^{1,2}$ \quad Qian Sun$^{1,2}$ \quad Tao Zhu$^{1,2,*,\S}$}
+\affil[1,2]{Department of Obstetrics and Gynecology, National Clinical Research Center for Obstetrics and Gynecology; Key Laboratory of Cancer Invasion and Metastasis (Ministry of Education), Hubei Key Laboratory of Tumor Invasion and Metastasis, Tongji Hospital, Tongji Medical College, Huazhong University of Science and Technology, Wuhan, China}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-0.5cm}
+
+% ============================================================
+% ▲P1-10 NOTATION & TABLE ABBREVIATIONS (▲2026-09-26)
+% ▲ PI 填写：下表每一行 = 1 个缩写 + 全称 + 备注（在哪几个 Supplementary Table 出现）
+% ============================================================
+\section*{Notation and Table Abbreviations}\label{sec:abbr}
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{@{}lll@{}}
+\toprule
+\textbf{Abbreviation} & \textbf{Full Name} & \textbf{Used in Suppl.\ Tables} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+NAMR & Noisy Attribute Masking Reconstruction & S2, S5, S12, S13, S14 \\
+CSP  & Contextual Subgraph Prediction & S2, S12, S13, S14 \\
+C3L  & Cancer-Country Contrastive Learning (InfoNCE) & S2, S4, S12 \\
+GFM  & Graph Foundation Model (this study's pretrained encoder) & S6--S11 \\
+ESM-2 & Evolutionary Scale Modeling v2 protein language model & S3, S5, S12 \\
+PPI  & Protein--Protein Interaction (STRING v12) & S1, S2, S10, S14 \\
+HGT  & Heterogeneous Graph Transformer & S2, S3 \\
+PAAD & Pancreatic Adenocarcinoma (TCGA cohort) & S7, S11, S12 \\
+BRCA & Breast Invasive Carcinoma (TCGA cohort) & S1, S9, S13 \\
+TPM  & Transcripts Per Million (GTEx v8 median) & S10 \\
+GDSC2 & Genomics of Drug Sensitivity in Cancer 2 release 24Jul22 & S6 \\
+AUC  & Area Under the Receiver Operating Characteristic Curve & S2, S5--S11, S14 \\
+AUROC & Area Under the ROC Curve (same metric, reported at pathway membership) & S11 \\
+SD   & Sample Standard Deviation (over $n$ seeds / splits) & S2, S3, S5--S14 \\
+CI   & 95\% Bootstrap Confidence Interval & S6, S9 \\
+$\pm$ & Plus--minus operator; value $\pm$ sample SD throughout & all tables \\
+\bottomrule
+\end{longtable}
+\renewcommand{\arraystretch}{1}
+\FloatBarrier
+
+\section{Supplementary Methods}
+
+\subsection{Data lineage and cohort}
+
+\textbf{TCGA Multi-Omics Data.} Gene expression, copy number variation, and somatic mutation data were obtained from the UCSC Xena Pan-Cancer (PANCAN) datasets (https://xena.ucsc.edu/): normalized RNA-seq gene expression (EB++AdjustPANCAN, log2(x+1)), GISTIC2 thresholded copy number, and MC3 v0.2.8 non-silent mutation calls (gene-level). Clinical annotations were extracted from the TCGA phenotype table, yielding 6,273 patients across 21 cancer types with $\geq$ 50 samples each.
+
+\begin{table}[H]
+\centering
+\caption{\textbf{Cohort composition of the 21 cancer types.} Samples with both an expression and a mutation profile for the same 15-character TCGA patient barcode; copy-number profiles are optional. Cancer types with fewer than 50 such samples were excluded, so 21 of the 33 TCGA cohorts passed; every retained barcode contributes exactly one patient node and the counts sum to the 6,273 patient nodes of the graph.}
+\label{tab:s25}
+\footnotesize
+\begin{tabular}{@{}lrlr@{}}
+\toprule
+\textbf{Cancer type} & \textbf{Samples} & \textbf{Cancer type} & \textbf{Samples} \\
+\midrule
+BLCA & 402 & PAAD & 169 \\
+BRCA & 783 & PRAD & 488 \\
+COAD & 289 & READ & 89 \\
+ESCA & 183 & SARC & 232 \\
+GBM & 145 & SKCM & 361 \\
+KICH & 66 & STAD & 410 \\
+LGG & 508 & THCA & 482 \\
+LIHC & 351 & THYM & 118 \\
+LUAD & 506 & UCS & 56 \\
+LUSC & 474 & UVM & 80 \\
+MESO & 81 & \textbf{Total} & \textbf{6,273} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+
+
+
+Inputs are pinned by file name rather than by a manifest. Gene-level graph: STRING v12.0 human protein--protein associations (\texttt{9606.\allowbreak protein.\allowbreak}\allowbreak
+\allowbreak\texttt{links.\allowbreak full.\allowbreak v12.\allowbreak 0.\allowbreak txt}), protein metadata (\texttt{9606.\allowbreak protein.\allowbreak}\allowbreak
+\allowbreak\texttt{info.\allowbreak v12.\allowbreak 0.\allowbreak txt}) and the reference proteome (\texttt{9606.\allowbreak protein.\allowbreak}\allowbreak
+\allowbreak\texttt{sequences.\allowbreak v12.\allowbreak 0.\allowbreak fa.\allowbreak gz}), thresholded at combined score $\geq 700$; UCSC Xena pan-cancer matrices \texttt{EB++AdjustPANCAN\_\allowbreak}\allowbreak
+\allowbreak\texttt{IlluminaHiSeq\_\allowbreak RNASeqV2.\allowbreak}\allowbreak
+\allowbreak\texttt{geneExp.\allowbreak xena.\allowbreak gz} (expression), \texttt{Gistic2\_\allowbreak CopyNumber\_\allowbreak}\allowbreak
+\allowbreak\texttt{Gistic2\_\allowbreak all\_\allowbreak thresholded.\allowbreak}\allowbreak
+\allowbreak\texttt{by\_\allowbreak genes.\allowbreak gz} (copy number) and \texttt{mc3.\allowbreak v0.\allowbreak 2.\allowbreak 8.\allowbreak PUBLIC.\allowbreak}\allowbreak
+\allowbreak\texttt{nonsilentGene.\allowbreak xena.\allowbreak gz} (mutation; the only Xena file whose version is carried in its name), with \texttt{TCGA\_\allowbreak phenotype\_\allowbreak}
+\allowbreak\texttt{denseDataOnlyDownload.\allowbreak tsv.\allowbreak gz} for clinical annotation. Patient-level experiments: TCGA GDC STAR-Counts gene quantification retrieved with TCGAbiolinks (\texttt{workflow.\allowbreak type = "STAR - Counts"}, primary tumour and solid tissue normal). Gene identifiers were resolved as STRING protein identifier $\rightarrow$ upper-cased \texttt{preferred\_\allowbreak name}, protein identifiers for the language-model features were parsed from the FASTA headers, proteins without a mapped symbol were dropped, and genes without an embedding were removed from the graph with the surviving edges remapped.
+
+The following are \emph{not} recoverable from the released tree and are stated here as limits rather than as provenance: no download timestamp and no checksum are recorded for any input data file (only model checkpoints are hashed, \texttt{results/checkpoint\_\allowbreak registry.\allowbreak json}); no version string is recorded for the Xena expression, copy-number or phenotype files; and the intermediate exclusion counts of the graph build (genes lost to symbol matching, samples lost to matrix intersection, and the cancer types dropped by the sample-count rule below) were written to the build's standard output rather than to a persisted artifact. The released tree therefore reproduces the 13,881-gene graph and the 6,273-patient set from the pinned inputs, but not the intermediate filter accounting.
+
+\textbf{Expression units.} Two expression sources are used and are never combined. The gene-level TCGA matrices come from the Xena \texttt{EB++AdjustPANCAN} compendium, whose values are already on a $\log_2(x+1)$ scale; the gene-level pipeline applies no further logarithm to them. The patient-level experiments use GDC STAR-Counts \texttt{tpm\_\allowbreak unstranded}, transformed exactly once with the code's \texttt{log1p} ($\log(1+\mathrm{TPM})$); duplicate gene rows are collapsed to the maximum TPM per symbol before that transform. No expression value passes through two logarithms, and the PAAD held-out target (a z-scored mean of \texttt{log1p} TPM within PAAD tumours) is likewise single-logged.
+
+\textbf{Cohort composition.} A cancer type entered the graph when at least 50 samples had both an expression and a mutation profile (copy number optional) for the same barcode; 21 of the 33 TCGA cohorts passed. Node identity is the 15-character TCGA barcode (participant plus sample-type code); the released set contains 6,273 distinct barcodes, and because the 12-character participant prefix of every one of them is also distinct (0 participants contribute more than one node) there is exactly one node per patient. The 15-character barcodes are not all primary tumours: they comprise 5,912 primary solid tumours (code 01) and 361 metastatic samples (code 06), and no solid-tissue-normal nodes survive the intersection rule. The per-cancer counts are in \supptab{tab:s25} and the composition is regenerated as 	exttt{results/cohort\_composition.json} by 	exttt{scripts/100\_cohort\_composition.py}. Because a sample enters only if every required matrix carries it, the intersection rule---not an explicit aliquot de-duplication step---is what fixes the cohort; missing values inside a selected gene set do not exclude a sample, since patient features are per-sample means over the selected genes and any residual missing entry is set to zero after averaging.
+
+
+\subsection{Graph construction and direction}
+
+\textbf{STRING PPI Network.} The STRING v12 human PPI network was downloaded from https://string-db.org/. Interactions with combined score $\geq$ 700 were retained (770,440 unique undirected edges among 13,881 genes). The ESM-2 subgraph retains the 5,000 highest-degree genes (544,908 edges).
+\FloatBarrier
+
+
+\subsection{Feature preprocessing}
+
+\textbf{ESM-2 Embedding Extraction.} Protein sequences for human proteins were obtained from STRING v12. ESM-2 (esm2\_t6\_8M\_UR50D, 8M parameters, 320-dimensional embeddings) was loaded from the FAIR Esm repository. Per-residue embeddings from layer 6 were mean-pooled over the sequence length, standardized, and PCA-reduced to 256 dimensions.
+
+The ESM-2 PCA gene features (5,000 $\times$ 256) have per-dimension variances ranging from 0.029 to 31.9 (max/min ratio 1,110$\times$); 148 of 256 dimensions (58\%) have variance below the NAMR noise level $\sigma^2 = 0.25$ and are therefore noise-dominated under additive denoising. The top-10 dimensions account for 51.3\% of total variance. Per-dimension standardization (StandardScaler) removes this dimension-to-dimension scale imbalance and is applied in all training runs (\suppfig{fig:s1}). We describe the reconstruction objective as \textit{scale-sensitive} rather than ill-posed: the heterogeneous variances do not make the objective mathematically ill-posed, but they weight the reconstruction error of high-variance dimensions far above that of low-variance dimensions, an imbalance that can dominate the optimisation.
+
+ To establish what the reconstruction loss actually measures, we benchmarked the trained plain-decoder NAMR against trivial denoisers on a fixed masked-validation set (15\% of nodes, fixed noise, seed 42), reporting the MSE and cosine terms separately (\supptab{tab:s19}). The trained graph NAMR reaches a total loss of 1.020, essentially at the constant per-dimension-mean predictor (1.065) and far above a trivial linear denoiser that downscales the noisy input (Wiener, 0.213) or an MLP denoiser without graph structure (0.254); the loss is computed on the masked (noisy) nodes only, as in training. The reconstruction loss therefore sits at the predict-mean floor in the standardized setting---as it does in the unstandardized setting, where the constant-mean predictor is 1.351---so the standardized-versus-unstandardized loss difference (1.06 versus 1.32) largely reflects the change in the constant-mean floor (1.065 versus 1.351) rather than evidence that the model learns to denoise. We therefore do not use the reconstruction loss as evidence for representation quality; that evidence comes from the downstream encoder-level endpoints (known-edge AUC, KEGG AUROC). Consistent with this, a full 500-epoch unstandardized NAMR-only run reaches a similar low loss (1.08) yet markedly worse downstream known-edge AUC (0.747 versus 0.858 under the same raw-feature evaluation, or 0.883 in-distribution; \supptab{tab:s19}), so standardization improves downstream representation quality even though the reconstruction loss is not the evidence for it.
+
+\begin{table}[H]
+\centering
+\caption{\textbf{Reference feature sets (no pretraining).} Raw omics features are per-gene mean expression / mean absolute CNV / mean mutation rate over TCGA samples, from the early 5,000-gene graph (5 cancer types; see Methods); this early graph was superseded by the 21-cancer ESM-2 graph used for all reported experiments.}
+\label{tab:s5}
+\footnotesize
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Feature set} & \textbf{K-means recov.} & \textbf{known-edge AUC} & \textbf{PPI cos (pos/neg)} \\
+\midrule
+ESM-2 embeddings (no graph) & 0.7049 $\pm$ 0.018 & 0.622 & 0.894 / 0.869 \\
+PCA-256 input features & 0.4648 $\pm$ 0.042 & 0.705 & 0.185 / $-0.002$ \\
+Raw multi-omics features & 0.1742 $\pm$ 0.008 & 0.599 & 0.223 / 0.025 \\
+Random-init HGT output & 0.4882 $\pm$ 0.022 & 0.6625 & 1.000 / 0.999 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{\textbf{Feature information-content scan.} NAMR-only retrained with the identical protocol (500 epochs, seed 42, standardized features) on controlled feature variants of the ESM-2 input. known-edge AUC: zero-shot cosine probe over the fixed 2,000 positive / 2,000 negative pairs (seed 42). K-means assignment recoverability: few-shot logistic regression on the embedding's own K-means labels (30 repeats); a self-consistency diagnostic (Methods). NAMR loss: final-epoch denoising loss. C3L probe: multinomial logistic-regression top-1 accuracy for the C3L target (30 paired 70/30 splits, seed 42), with the row-shuffled control at 0.086 and top-1 accuracy baselines 0.138 (majority class), 0.082 (class-frequency random) and 0.048 (uniform $1/21$); the balanced-accuracy chance level is a different metric ($1/15 = 0.067$ for the 15 classes present) and is not compared with these top-1 values. Note that recoverability stays high even for random-feature training, showing that the self-consistency metric is not content-sensitive; the PPI probe is the informative encoder-level metric.}
+\label{tab:s16}
+\footnotesize
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Feature variant} & \textbf{Known-edge AUC} & \textbf{K-means rec.} & \textbf{NAMR loss} & \textbf{C3L LR} \\
+\midrule
+ESM-2 PCA-256 (default) & 0.858 & 0.803 & 1.064 & 0.205 \\
+ESM-2 PCA-64 & 0.878 & 0.879 & 0.995 & 0.236 \\
+ESM-2 320-dim (raw) & --- & --- & --- & 0.195 \\
+Random (standardized) & 0.581 & 0.792 & 1.085 & 0.077 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+
+
+\subsection{Training configuration}
+
+\begin{table}[H]
+\centering
+\caption{\textbf{Loss trajectories of the four ablation variants (first $\to$ final, 500 epochs).}}
+\label{tab:s3}
+\footnotesize
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Variant} & \textbf{CSP} & \textbf{NAMR} & \textbf{C3L} & \textbf{Total} \\
+\midrule
+Full & 0.6934 $\to$ 0.3821 & 1.1258 $\to$ 1.0980 & 3.0451 $\to$ 3.0394 & 3.3418 $\to$ 2.9997 \\
+NAMR-only & 0.6934 $\to$ 0.6955 & 1.1258 $\to$ 1.0638 & 3.0451 $\to$ 3.0418 & 1.1258 $\to$ 1.0638 \\
+CSP-only & 0.6934 $\to$ 0.3784 & --- & 3.0452 $\to$ 3.0815 & 0.6934 $\to$ 0.3784 \\
+CSP+NAMR & 0.6934 $\to$ 0.4124 & 1.1258 $\to$ 1.0502 & --- & 1.8192 $\to$ 1.4625 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{\textbf{Real gene--cancer specificity targets for C3L.} The argmax over 21 cancer types of the TCGA expression specificity defines the positive InfoNCE target. Example genes with their top-1 cancer type and specificity:}
+\label{tab:s4}
+\footnotesize
+\begin{tabular}{@{}llc@{}}
+\toprule
+\textbf{Gene} & \textbf{Top-1 cancer type} & \textbf{Specificity} \\
+\midrule
+TP53 & COAD (then GBM) & 10.84 \\
+EGFR & GBM & 11.75 \\
+ERBB2 & BRCA & 12.87 \\
+PAX8 & THCA & 14.05 \\
+KRAS & ESCA & 10.96 \\
+KLK3 & PRAD & 18.23 \\
+GFAP & LGG & 18.10 \\
+ALB & LIHC & 20.08 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+
+
+\subsection{Evaluation protocol and statistics}
+
+The evaluation protocol (probe definitions, pair sampling, permutation units and the standard-deviation convention) is given in the main-text Methods; the complete per-arm table for every reported endpoint is \supptab{tab:s1}, and the per-seed values behind the multi-seed means are in \supptab{tab:s12} and \supptab{tab:s11}.
+\FloatBarrier
+
+
+\section{Objective and representation diagnostics}
+
+\subsection{Objective comparison}
+
+\begin{table}[H]
+\centering
+\caption{\textbf{Complete ablation results (500 epochs, standardized ESM-2 features, seed 42).} K-means assignment recoverability: few-shot logistic regression on the embedding's own K-means labels, 30 repeats; a self-consistency diagnostic (Methods). PPI: mean cosine similarity over 2,000 positive / 2,000 negative pairs and AUROC.}
+\label{tab:s1}
+\footnotesize
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Variant} & \textbf{K-means recov.} & \textbf{PPI cos (pos)} & \textbf{PPI cos (neg)} & \textbf{known-edge AUC} \\
+\midrule
+Full (NAMR+CSP+C3L) & 0.8519 $\pm$ 0.0193 & 0.5690 & 0.5152 & 0.5752 \\
+NAMR-only & 0.8025 $\pm$ 0.0160 & 0.7614 & 0.3094 & \textbf{0.8578} \\
+CSP-only & 0.8466 $\pm$ 0.0234 & 0.6505 & 0.6373 & 0.5237 \\
+CSP+NAMR & 0.8799 $\pm$ 0.0126 & 0.7063 & 0.3557 & \textbf{0.7136} \\
+Random-init HGT & 0.4882 $\pm$ 0.0220 & 0.9997 & 0.9994 & 0.6625 \\
+ESM-2 only & 0.7049 $\pm$ 0.0183 & 0.8935 & 0.8693 & 0.6221 \\
+PCA input & 0.4648 $\pm$ 0.0417 & 0.1850 & $-0.0019$ & 0.7048 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+
+
+\subsection{Variance, reconstruction baselines and the skip diagnostic}
+
+\begin{table}[h]
+\centering
+\caption{\textbf{NAMR denoising benchmark (what the reconstruction loss measures).}}
+\label{tab:s19}
+\footnotesize
+Fixed masked-validation set (15\% of nodes, fixed noise, seed 42); loss computed on the masked (noisy) nodes only,
+as in training; the total loss is $\mathrm{MSE} + 0.1\,(1-\mathrm{mean\ cosine})$.
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Predictor} & \textbf{MSE} & \textbf{mean cosine} & \textbf{loss} \\
+\midrule
+\multicolumn{4}{@{}l}{\textit{Standardized features}} \\
+Constant per-dimension mean & 0.965 & 0.003 & 1.065 \\
+Identity (output = noisy input) & 0.251 & 0.856 & 0.265 \\
+Optimal linear (Wiener) denoiser & 0.199 & 0.856 & 0.213 \\
+No-graph MLP denoiser & 0.237 & 0.835 & 0.254 \\
+Trained graph NAMR (plain decoder) & 0.935 & 0.148 & 1.020 \\
+\midrule
+\multicolumn{4}{@{}l}{\textit{Unstandardized features}} \\
+Constant per-dimension mean & 1.251 & 0.003 & 1.351 \\
+Identity (output = noisy input) & 0.249 & 0.890 & 0.260 \\
+Optimal linear (Wiener) denoiser & 0.210 & 0.890 & 0.221 \\
+\bottomrule
+\end{tabular}
+
+\smallskip
+\textbf{Downstream known-edge AUC (NAMR-only, 500 epochs, seed 42).}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Model} & \textbf{raw-feature eval} & \textbf{std-feature eval} \\
+\midrule
+Standardized NAMR-only & 0.858 & 0.883 \\
+Unstandardized NAMR-only & 0.747 & 0.640 \\
+\bottomrule
+\end{tabular}
+
+\noindent The trained graph NAMR sits at the constant-mean floor (1.020 versus 1.065) and is far above trivial
+denoisers (identity 0.265; Wiener 0.213; no-graph MLP 0.254), so the reconstruction loss does not indicate that the
+model denoises. The standardized-versus-unstandardized loss difference (1.06 versus 1.32) tracks the constant-mean
+floor (1.065 versus 1.351), i.e., it is a target rescaling rather than evidence of task learning; the reconstruction
+loss is therefore not used as evidence for representation quality. Standardization nonetheless improves the
+downstream known-edge AUC: the unstandardized NAMR-only model reaches 0.747 (raw-feature evaluation) versus 0.858 for
+the standardized model under the same protocol, or 0.883 evaluated in-distribution on standardized features, so
+per-dimension standardization is a useful preprocessing step whose benefit is read from the encoder-level endpoint,
+not from the loss (main text; \supptab{tab:s1}).
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{\textbf{NAMR convergence and the skip-connection diagnostic.} Loss at epoch 1 and final epoch (500 epochs unless noted). Plain decoder: the method used throughout this study. Skip-connected decoder: a diagnostic variant whose decoder input concatenates the noisy feature $[\mathbf{h}_i; \tilde{\mathbf{x}}_i]$; it reaches a much lower loss but yields worse cosine separation (NAMR-only skip-connected: known-edge AUC 0.601, below the random-init HGT at 0.6625), so it is not used.}
+\label{tab:s2}
+\footnotesize
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Config.} & \textbf{NAMR (first)} & \textbf{NAMR (final)} & \textbf{Note} \\
+\midrule
+Full (plain, std.) & 1.1258 & 1.0980 & constant-mean reference level 1.065 \\
+NAMR-only (plain, std.) & 1.1258 & 1.0638 & constant-mean reference level $\approx$1.065 \\
+CSP+NAMR (plain, std.) & 1.1258 & 1.0502 & constant-mean reference level $\approx$1.065 \\
+Full (unstd., 100 ep.) & 1.3919 & 1.3217 & 100-epoch loss (constant-mean ref.\ 1.351) \\
+NAMR-only (skip decoder, diag.) & 1.1351 & 0.2125 & low loss; worse cosine (AUC 0.601) \\
+\bottomrule
+\end{tabular}}
+
+\smallskip
+{\footnotesize \noindent \textbf{Note.} The constant-mean reference level is the error of the constant-mean predictor for that target, not a training-loss milestone, and the 100-epoch unstandardized run is still converging at that budget.}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{figS1_namr_reconstruction_fix.pdf}
+\caption{\textbf{Feature standardization rescales the NAMR loss, and improves downstream known-edge recovery.} NAMR loss over 100 epochs of NAMR-only pretraining (namr\_sweep, seed 42, single run): unstandardized ESM-2 PCA features (base\_ref checkpoint; 1.39 $\to$ 1.32 over 100 epochs) versus standardized features (h1\_std checkpoint; 1.13 $\to$ 1.09, near its constant-mean reference level of $\approx 1.065$, which is the constant-mean predictor's error rather than a training-loss milestone). The 100-epoch unstandardized curve continues to decrease over a full 500-epoch budget (final loss 1.08, conv=PASS), so it is slower convergence rather than a hard stall; the two settings differ mainly in the constant-mean floor (1.351 versus 1.065, \supptab{tab:s19}), i.e., a target rescaling. Inputs: standardized and unstandardized ESM-2 PCA-256 gene features of the 5,000-gene graph, one run per curve (Methods). Standardization nonetheless improves downstream known-edge AUC (0.747 unstandardized versus 0.858 standardized under the same raw-feature evaluation; \supptab{tab:s19}), so its benefit is read from the encoder-level endpoint, not from the loss (the feature-variance subsection of \suppnote{sec:sn1} in the original draft is superseded by the standardization analysis below). This 100-epoch NAMR-only ablation is a different run from the 500-epoch full-model trajectory in Fig.~2(b) (full.pt checkpoint; NAMR 1.126 $\to$ 1.098); the unstandardized 100-epoch level appears as the dashed line in Fig.~2(b).}
+\label{fig:s1}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{figS3_skipdecoder_collapse_diagnostic.pdf}
+\caption{\textbf{Skip-connected versus plain-decoder NAMR (diagnostic).} Decoder effect at a fixed seed: the like-for-like contrast is the two seed-7 runs (plain decoder, \texttt{namr\_\allowbreak only\_\allowbreak s7o.\allowbreak pt}, against the skip-connected decoder whose input is $[\mathbf{h}_i; \tilde{\mathbf{x}}_i]$, \texttt{namr\_\allowbreak only\_\allowbreak s7.\allowbreak pt}), both 500 epochs; the seed-42 plain run (\texttt{ablation\_\allowbreak real/namr\_\allowbreak only.\allowbreak pt}) is included for reference only, so seed and decoder are never varied together in the comparison that carries the claim. (a) The skip-connected decoder reaches a much lower reconstruction loss ($\sim$0.21) than the plain decoder ($\sim$1.06), but (b) the resulting embeddings have worse cosine separation: known-edge AUC 0.6012, below the random-init HGT (0.6625), while the plain decoder yields the best representations in this study (0.8578/0.8262). Bars are single-evaluation values (2,000 pos/neg pairs) from the pinned-stack evaluations of 2026-09 and match \supptab{tab:s12} (seed column) and the post-audit evaluation summary; no error bars are shown. Tick labels are abbreviated: plain NAMR (seed 42), plain NAMR (seed 7), skip NAMR (seed 7), random-init HGT, ESM-2 embeddings without graph. Inputs: standardized ESM-2 PCA-256 gene features on the 5,000-gene graph; one evaluation per bar (Methods). The plain decoder is therefore the method used throughout this study; the skip variant is reported for transparency.}
+\label{fig:s3}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figS4_loss_curves_full_suite.pdf}
+\caption{\textbf{Total training loss of the full model.} Sum of the three objective terms over 500 epochs (single run, seed 42, \texttt{ablation\_\allowbreak real/full.\allowbreak pt}); the total is dominated by the reconstruction term and therefore inherits its behaviour, which is why the main-text figure separates the objectives and contrasts the reconstruction loss against the encoder-level endpoint (Fig.~2). Inputs: standardized ESM-2 PCA-256 gene features on the 5,000-gene graph (Methods).}
+\label{fig:s4}
+\end{figure}
+
+\FloatBarrier
+
+
+\subsection{CSP geometry}
+
+\begin{table}[h]
+\centering
+\caption{\textbf{CSP geometry, skip-decoder shortcut, and C3L prototype degeneracy.}}
+\label{tab:s20}
+\footnotesize
+\textbf{(a) Embedding geometry (seed 42, raw-feature evaluation; the CSP-only three-seed mean is $0.514 \pm 0.009$ on the sample convention used throughout, \supptab{tab:s12}).}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.46\textwidth}cc@{}}
+\toprule
+\textbf{Metric} & \textbf{CSP-only} & \textbf{NAMR-only} \\
+\midrule
+Effective rank (SVD entropy) & 3.8 & 52.1 \\
+Mean pairwise cosine & 0.66 & 0.31 \\
+Pos/neg pair cosine & 0.65 / 0.64 & 0.76 / 0.31 \\
+Per-dim std (min/med/max) & 0.02 / 0.20 / 0.67 & 0.03 / 0.31 / 1.21 \\
+Known-edge AUC & 0.524 & 0.858 \\
+Supervised LR AUC (Table~S14) & 0.839 & 0.929 \\
+\bottomrule
+\end{tabular}
+
+{\footnotesize \noindent \textbf{Cross-seed replication of the geometry statistics} (identical formula, every archived seed; artifact \texttt{results/control/geometry\_\allowbreak cross\_\allowbreak seed.\allowbreak json}, script \texttt{scripts/101\_\allowbreak geometry\_\allowbreak cross\_\allowbreak seed.\allowbreak py}): CSP-only (seeds 42/7/123) effective rank 3.80/3.20/4.49 (mean 3.83 $\pm$ 0.65), top-1 singular-value share 0.555--0.619 and top-5 share 0.937--0.974; NAMR-only (seeds 42/7/123/21/99) effective rank 52.06/34.71/29.80/25.50/27.97 (mean 34.01 $\pm$ 10.64), top-1 share 0.148--0.302 and top-5 share 0.417--0.600. The two arms do not overlap on any of the four statistics at any pair of seeds, so the collapse is a property of the CSP objective rather than of one checkpoint; the absolute effective rank of NAMR-only is nevertheless seed-variable (25--52), so the statistic is used ordinally, as a separation between arms, and not as a calibrated scale.}
+
+\smallskip
+\textbf{(b) Skip-decoder shortcut test (zeroing the encoder hidden state $\mathbf{h}_i$).}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.46\textwidth}cc@{}}
+\toprule
+\textbf{Decoder input} & \textbf{Reconstruction MSE} \\
+\midrule
+$[\mathbf{h}_i;\tilde{\mathbf{x}}_i]$ (skip, intact) & 0.20 \\
+$[\mathbf{0};\tilde{\mathbf{x}}_i]$ ($\mathbf{h}_i$ zeroed) & 0.38 \\
+Plain decoder (reference) & 0.94 \\
+\bottomrule
+\end{tabular}
+
+\smallskip
+\textbf{(c) C3L diagnostic on frozen standardized features (no HGT encoder).}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.46\textwidth}cc@{}}
+\toprule
+\textbf{Readout} & \textbf{Result} \\
+\midrule
+Linear CE classifier, train accuracy & 0.386 \\
+C3L head, loss at $\tau=0.07$ ($\ln 21$ = 3.04) & $3.77 \to 0.002$ \\
+C3L head, final loss at $\tau \in \{0.03, 0.07, 0.2, 0.5\}$ & 0.002 / 0.002 / 0.126 / 1.196 \\
+Cancer-node pairwise cosine (full model) & 1.000 (all identical) \\
+Cancer-node per-dim std & 0.000 \\
+\bottomrule
+\end{tabular}
+
+
+\smallskip
+\textbf{(d) Cancer-node representation versus depth (full model, float32).}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Stage} & \textbf{max cos} & \textbf{min Euclid.} & \textbf{per-dim std} & \textbf{distinct} \\
+\midrule
+one-hot input & 0.000000 & 1.41e+00 & 2.13e-01 & 21 \\
+after HGT layer 1 & 0.677442 & 6.75e-01 & 2.3e-02--4.2e-02 & 21 \\
+after HGT layer 2 & 0.985044 & 9.13e-02 & 3.1e-03--5.8e-03 & 21 \\
+after HGT layer 3 & 0.999857 & 1.22e-02 & 3.9e-04--8.2e-04 & 21 \\
+after HGT layer 4 & 0.999999 & 1.63e-03 & 4.6e-05--1.2e-04 & 21 \\
+after HGT layer 5 & 1.000000 & 2.26e-04 & 4.9e-06--2.0e-05 & 21 \\
+after HGT layer 6 & 1.000000 & 3.42e-05 & 4.6e-07--3.7e-06 & 21 \\
+\bottomrule
+\end{tabular}
+
+\noindent \textbf{Note.} (a) CSP-only concentrates the embeddings into a low-rank, positively correlated subspace (effective
+rank 3.8 versus 52.1; mean pairwise cosine 0.66 versus 0.31), which destroys zero-shot cosine separation even though a
+supervised pair-feature classifier still reaches 0.839---a dimensional collapse, not a total information loss. (b) Zeroing
+$\mathbf{h}_i$ raises the skip decoder's reconstruction MSE from 0.20 to 0.38 (+88\%; every value in this panel is the
+NAMR denoising MSE, not the multi-term training total), so shortcutting to the noisy input accounts for much of the low
+loss, while the hidden state still contributes materially---zeroing it does not return the plain-decoder level of 0.94. (c) The features carry signal that the InfoNCE formulation can use
+(a frozen-feature C3L head reaches a training loss of 0.002, which shows the head can fit the targets and not that the
+targets are generalisable), so the full-model C3L failure is structural rather than a weak-target effect. (d) The cancer
+nodes are not exactly identical but become numerically indistinguishable with depth: measured on the trained full model at
+float32, the minimum pairwise Euclidean distance between the 21 cancer-node embeddings falls from 6.7$\times10^{-1}$ after
+layer 1 to 9.1$\times10^{-2}$, 1.2$\times10^{-2}$, 1.6$\times10^{-3}$, 2.3$\times10^{-4}$ and 3.4$\times10^{-5}$ after
+layers 2--6 (about one order of magnitude per layer), and the per-dimension standard deviation reaches 4.6$\times10^{-7}$
+(float32 resolution is $\approx10^{-7}$), while the maximum pairwise cosine rounds to 1.000000 from layer 5 on. The
+complete-bipartite wiring is what drives this homogenisation; the residual differences are the only signal the contrastive
+head can use, which is why the loss oscillates around $\ln 21$ (final 3.0394, minimum 3.0308 over the last five epochs
+against $\ln 21=3.0445$) instead of decreasing.
+\end{table}
+
+\FloatBarrier
+
+
+\subsection{Readout diagnostics (self-consistency and regime sensitivity)}
+
+\begin{table}[H]
+\centering
+\caption{\textbf{Supervised pair-feature probe (5-fold CV isolates the classifier head only; the encoder remains trained on the full graph).} Logistic regression on Hadamard pair features, 5-fold cross-validated AUROC and AUPRC over the same 2,000 positive / 2,000 negative pairs (seed 42), alongside the zero-shot cosine-probe (known-edge-recovery)AUC used as the primary metric in the main text.}
+
+\smallskip
+{\footnotesize \noindent \textbf{Notes.} The 5-fold split isolates the classifier head only; positive pairs are drawn from the pretraining graph, so these values are not comparable to held-out link-prediction AUCs reported in the literature. The supervised probe reaches higher absolute levels, but compresses the differences between variants because logistic regression extracts linear signal even from poorly organized embeddings (e.g., random-init HGT reaches 0.780; re-run 0.796/0.806); the zero-shot probe therefore remains the primary representation-quality metric. Notably, CSP-only reaches only 0.524 on the zero-shot cosine probe but 0.839 supervised, so its failure is a collapse of the cosine geometry (low effective rank, \supptab{tab:s20}) rather than a total loss of information.}
+
+\label{tab:s14}
+\footnotesize
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Model (seed 42)} & \textbf{Zero-shot cosine AUC} & \textbf{Supervised LR AUC} & \textbf{AUPRC} \\
+\midrule
+NAMR-only & 0.858 & \textbf{0.929} & \textbf{0.921} \\
+CSP+NAMR (plain decoder) & 0.714 & 0.892 & 0.891 \\
+Full (NAMR+CSP+C3L) & 0.575 & 0.852 & 0.854 \\
+CSP-only & 0.524 & 0.839 & 0.840 \\
+Equal-volume control & 0.668 & 0.882 & 0.870 \\
+Rewired control & 0.560 & 0.829 & 0.830 \\
+Single-cancer (BRCA) & 0.568 & 0.799 & 0.807 \\
+Random-init HGT & 0.6625 & 0.780 & 0.793 \\
+ESM-2 only (no graph) & 0.622 & 0.722 & 0.724 \\
+PCA input features & 0.705 & 0.661 & 0.677 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{\textbf{K-means assignment-recoverability diagnostics.}}
+\label{tab:s17}
+\footnotesize
+\textbf{(a) Recoverability versus the matched-size random-partition control ($K_{\text{clus}}=21$).}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Embedding} & \textbf{Recoverability ($K=21$)} & \textbf{Random-partition control} \\
+\midrule
+Full (NAMR+CSP+C3L) & 0.852 & 0.048 \\
+NAMR-only & 0.802 & 0.048 \\
+CSP-only & 0.847 & 0.048 \\
+CSP+NAMR & 0.880 & 0.048 \\
+ESM-2 only (no graph) & 0.705 & 0.048 \\
+PCA input features & 0.465 & 0.050 \\
+Random-init HGT & 0.494 & 0.047 \\
+\bottomrule
+\end{tabular}
+
+\textbf{(b) Sensitivity to the cluster count $K_{\text{clus}}$ (Full model).}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+$K$ & 15 & 21 & 27 \\
+\midrule
+Recoverability & 0.859 & 0.852 & 0.854 \\
+\bottomrule
+\end{tabular}
+
+\textbf{(c) Cross-training-seed partition stability.}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Model} & \textbf{ARI} & \textbf{NMI} \\
+\midrule
+Full (seed 42 vs seed 7) & 0.250 & 0.531 \\
+NAMR-only (seed 42 vs seed 7) & 0.202 & 0.438 \\
+\bottomrule
+\end{tabular}
+
+\noindent Recoverability is far above the matched-size random-partition control
+($\sim$0.05, chance), confirming that the embeddings carry non-random geometric
+cluster structure that K-means can recover. We do not interpret this as biological
+structure: the cross-seed ARI/NMI are modest, so the recovered partition identity
+is seed-sensitive, and biological content is assessed instead by the external
+fixed-target endpoints (GO enrichment, KEGG pathway-membership prediction,
+\supptabrange{tab:s8}{tab:s11}). This diagnostic is therefore reported for
+transparency and reproducibility only, not as a biological endpoint.
+
+
+\FloatBarrier
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Inference-regime sensitivity of the known-edge probe.} The headline probe L2-normalizes the encoder output as produced (regime A); regime B additionally z-scores each output dimension before the probe, on the same fixed 2,000 positive / 2,000 negative pair set. The ordering of the trained arms is unchanged (NAMR-only first under both regimes, CSP$+$NAMR second, CSP-only last among trained arms), so the comparison between objectives is not an artefact of inference-time preprocessing; the reference conditions move---the PCA-input baseline is rank 3 under regime A but last under regime B (0.705 vs 0.607)---because z-scoring removes a scale component that the raw probe partly scores. All headline numbers use regime A; regime B is the sensitivity analysis.}
+\label{tab:s24}
+\footnotesize
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Condition} & \textbf{AUC (raw)} & \textbf{AUC (z-scored)} & \textbf{rank (raw)} & \textbf{rank (z)} \\
+\midrule
+\textbf{NAMR-only} & \textbf{0.8578} & \textbf{0.8713} & 1 & 1 \\
+CSP+NAMR & 0.7136 & 0.7867 & 2 & 2 \\
+Full & 0.5752 & 0.6895 & 6 & 5 \\
+CSP-only & 0.5237 & 0.6604 & 7 & 6 \\
+ESM-2 only & 0.6221 & 0.7048 & 5 & 4 \\
+Random-init HGT & 0.6622 & 0.7207 & 4 & 3 \\
+PCA input & 0.7048 & 0.6074 & 3 & 7 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+
+
+\subsection{C3L prototypes and the repair experiment}
+
+\begin{table}[H]
+\centering
+\caption{\textbf{Direct probe of the C3L target in the input features.} Top-1 accuracy for predicting each gene's C3L target (top-1 cancer type by TCGA expression specificity; 21 classes, 15 present among the 5,000 targets) from the features: the graph encoder input (5000 $\times$ 256 standardized ESM-2 PCA features, identical to the pretraining input) and the raw 320-dimensional standardized ESM-2 mean-pooled embeddings. LR: multinomial logistic regression ($C=1.0$); kNN-15 (cosine): $k$-nearest neighbours with cosine distance. Five-fold cross-validation (seed 42) and 30 paired 70/30 splits (seed 42), mean $\pm$ SD. Random control: row-shuffled features under the identical LR protocol. Uninformative baselines on the same metric (top-1 accuracy; 15 of 21 classes present among the 5,000 targets): majority class 0.138, class-frequency random 0.082, uniform $1/21 = 0.048$. The balanced-accuracy chance levels for these class counts are different numbers ($1/15 = 0.067$ for 15 uniform classes, $1/21 = 0.048$ for 21) and top-1 and balanced accuracy are not compared with one another here.}
+\label{tab:s15}
+\footnotesize
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Features} & \textbf{LR (5-fold CV)} & \textbf{LR (30 splits)} & \textbf{kNN-15 cosine (30 splits)} \\
+\midrule
+Graph encoder input (5000$\times$256) & 0.207 $\pm$ 0.008 & 0.205 $\pm$ 0.007 & 0.221 $\pm$ 0.008 \\
+ESM-2 320-dim (standardized) & 0.201 $\pm$ 0.008 & 0.195 $\pm$ 0.010 & 0.220 $\pm$ 0.008 \\
+Random control (row-shuffled) & 0.087 $\pm$ 0.005 & 0.086 $\pm$ 0.005 & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figS5_setfingerprint_and_phantomedge_mechanism.pdf}
+\caption{\textbf{Mechanism diagnostics behind the loss--geometry--readout divergence.} (a) Normalised singular-value spectrum (share of $\sum_i s_i$) of the gene embeddings, one curve per archived seed: CSP-only collapses onto a few components (the leading five carry 0.94--0.97 of the spectrum at every seed) whereas NAMR-only spreads over tens of components; this is what the effective-rank statistic of \supptab{tab:s20}a summarises. (b) Minimum pairwise Euclidean distance between the 21 cancer-node representations as a function of depth in the full model (float32): the one-hot input is exactly orthogonal and the distance decays by about one order of magnitude per layer, reaching $3.4\times10^{-5}$ after layer 6---the prototype degeneracy behind the contrastive objective's failure to reduce its loss below $\ln 21$. Artifacts: \texttt{results/control/geometry\_\allowbreak cross\_\allowbreak seed.\allowbreak json} and \texttt{results/control/c3l\_\allowbreak prototype\_\allowbreak layers.\allowbreak json}; $n=3$ seeds (CSP-only) and $n=5$ (NAMR-only) in (a), one trained model in (b).}
+\label{fig:s5}
+\end{figure}
+
+\FloatBarrier
+
+
+\section{Generalization and structural controls}
+
+\subsection{Held-out edges}
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Held-out edge recovery and structural controls.}}
+\label{tab:s18}
+\footnotesize
+\textbf{(a) Held-out PPI edge recovery} (test edges removed from the message-passing graph and from CSP positive
+sampling; 13,622 test pairs; three negative schemes; seed 42, 500 epochs; MPS replication of the released code).
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Variant} & \textbf{Random neg.} & \textbf{Degree-matched} & \textbf{Hub-top1000} \\
+\midrule
+NAMR-only & 0.853 & 0.809 & 0.798 \\
+CSP+NAMR & 0.595 & 0.526 & 0.640 \\
+\bottomrule
+\end{tabular}
+
+\textbf{(b) Structural controls} (NAMR-only, seed 42; standard known-edge cosine probe over the fixed 2,000 positive /
+2,000 negative pairs).
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Graph construction} & \textbf{Known-edge AUC} & \textbf{K-means recoverability} \\
+\midrule
+Original (complete-bipartite cancer nodes) & 0.858 & 0.803 \\
+ppi-only (cancer nodes isolated) & 0.787 & 0.855 \\
+dummy21 (one-hot dummy cancer nodes) & 0.861 & 0.870 \\
+expression-specificity edges (top-5 per gene) & 0.822 & 0.860 \\
+shuffled specificity edges (degree-preserving) & 0.669 & 0.893 \\
+\bottomrule
+\end{tabular}
+
+\noindent Removing the gene--cancer wiring (ppi-only) costs $\sim$0.07 known-edge AUC (0.787 versus 0.858), yet
+one-hot dummy nodes wired identically recover 0.861---indistinguishable from the real nodes. The multi-cancer
+contribution is therefore carried by the message-passing structure of the extra nodes (a structural prior), not by
+cancer-specific molecular information. Expression-specificity edges (top-5 per gene) carry a usable signal beyond
+edge count alone: 0.822 versus 0.669 for a degree-preserving shuffled mapping, though both fall below the
+complete-bipartite construction (0.858), which is a strong structural prior that the specificity graph does not
+exploit; a specificity-thresholded graph remains future work. The K-means column is a self-consistency diagnostic
+(Methods) and is not the basis of these conclusions.
+
+\smallskip
+\textbf{(c) Edge accounting for the held-out experiment (verified on the released artifacts).}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.52\textwidth}c@{}}
+\toprule
+\textbf{Step} & \textbf{Value} \\
+\midrule
+Released graph: stored directed PPI entries & 544,908 \\
+Unique undirected (canonical) pairs & 136,227 \\
+Self-loops & 0 \\
+Train / validation / test canonical pairs (80/10/10) & 108,983 / 13,622 / 13,622 \\
+Validation pairs present in the training graph & \textbf{0} \\
+Test pairs present in the training graph & \textbf{0} \\
+Validation $\cap$ test pairs & 0 \\
+Train $\cup$ validation $\cup$ test & 136,227 (all known pairs) \\
+Negatives per scheme (random / degree-matched / hub-restricted) & 13,622 each \\
+\bottomrule
+\end{tabular}
+
+\end{table}
+
+\FloatBarrier
+
+
+\subsection{Auxiliary nodes and edge-count controls}
+
+\begin{table}[H]
+\centering
+\caption{\textbf{Data-volume and structure controls for the equal-budget comparison (CSP+NAMR, plain-decoder NAMR).} The equal-volume control matches the single-cancer control's gene--cancer edge count (4,998 vs 5,000) with all 21 cancer-type nodes; the random-endpoint control keeps the multi-cancer edge count (105,000 edge entries) with uniformly reassigned cancer endpoints and is a multigraph control, not a simple-graph rewire (see note). K-means assignment recoverability reported at seed 42.}
+\label{tab:s13}
+\footnotesize
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\textbf{Model} & \textbf{Gene--cancer edges} & \textbf{Seed 42} & \textbf{Seed 7} & \textbf{Seed 123} & \textbf{Mean $\pm$ SD} & \textbf{K-means rec.} \\
+\midrule
+Multi-cancer & 105,000 & 0.714 & 0.791 & 0.568 & 0.691 $\pm$ 0.115 & 0.880 $\pm$ 0.013 \\
+Equal-volume control & 4,998 & 0.668 & 0.797 & 0.730 & \textbf{0.732} $\pm$ 0.065 & 0.877 $\pm$ 0.021 \\
+Random-endpoint control & 105,000 (67,351) & 0.560 & 0.640 & 0.567 & 0.589 $\pm$ 0.044 & 0.800 $\pm$ 0.065 \\
+Single-cancer (BRCA) & 5,000 & 0.568 & 0.563 & 0.555 & 0.562 $\pm$ 0.007 & 0.903 $\pm$ 0.024 \\
+\bottomrule
+\end{tabular}
+
+\noindent \textbf{Note (random-endpoint control).} Because the original gene--cancer set is already a complete 5{,}000$\times$21 bipartite graph, a simple graph with each gene linked to all 21 cancer types at fixed edge count has no reconnection space. The random-endpoint control therefore keeps the 105{,}000 edge entries as a \textit{multigraph} rather than 105{,}000 unique edges: 37{,}649 entries (36\%) are duplicate gene--cancer pairs, leaving 67{,}351 unique pairs; each gene connects to 8--18 (median 13) distinct cancer types instead of 21; and the per-cancer degree spans 4{,}868--5{,}114. Its known-edge drop (0.589) therefore confounds endpoint randomization with duplicated edges, reduced unique cancer channels, and heterogeneous cancer degree, and it is not interpreted as clean evidence that cancer-type structure alone carries the multi-cancer gain.
+\end{table}
+
+\FloatBarrier
+
+
+\subsection{Smoothing and the SCE loss ablation}
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Existing-method baselines (graph smoothing and GraphMAE-style reconstruction).}}
+\label{tab:s21}
+\footnotesize
+\textbf{(a) Graph feature smoothing (no trainable message passing).} The input matrix is the graph's gene feature matrix---standardized ESM-2 PCA-256, the same object that Table~S1 calls ``PCA input features''---so the $t_{\text{smooth}}=0$ row is that standardized matrix and not the raw ESM-2 embeddings (raw, unstandardized ESM-2 gives 0.622/0.599 there; see the definitions in Table~S1 and Table~S24). Then $t_{\text{smooth}}$ rounds of
+symmetric-normalized PPI averaging $X \leftarrow 0.5X + 0.5\,\hat{A}X$; $\hat{A} = D^{-1/2}AD^{-1/2}$ over the undirected PPI.
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Smoothing rounds $t_{\text{smooth}}$} & \textbf{Known-edge AUC} & \textbf{KEGG AUROC} \\
+\midrule
+0 (standardized PCA input, no smoothing) & 0.607 & 0.802 \\
+1 & 0.908 & 0.918 \\
+2 & 0.977 & 0.946 \\
+3 & \textbf{0.985} & \textbf{0.952} \\
+5 & 0.985 & 0.952 \\
+10 & 0.983 & 0.950 \\
+\bottomrule
+\end{tabular}
+
+\smallskip
+\textbf{(b) GraphMAE-style reconstruction (scaled cosine error, SCE); $K_{\text{clus}}=21$ refers to the K-means diagnostic column only.} Same HGT encoder/decoder and denoising protocol,
+trained 500 epochs with the GraphMAE SCE criterion $(1-\cos)^2$ instead of the default MSE$+0.1(1-\cos)$. This is a
+\emph{loss-criterion ablation}, not a reimplementation of GraphMAE: only the reconstruction criterion is substituted, while
+that method's masking/re-masking schedule and decoder design are not reproduced, so this panel does not support a claim
+about the competitiveness of the published method.
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Reconstruction criterion} & \textbf{Known-edge AUC} & \textbf{K-means recov.} \\
+\midrule
+Default (MSE $+0.1(1-\cos)$) & 0.858 & 0.803 \\
+GraphMAE-style SCE & 0.794 & 0.855 \\
+\bottomrule
+\end{tabular}
+
+
+
+
+
+\end{table}
+
+\FloatBarrier
+
+
+\section{Task-specific evaluations}
+
+\subsection{KEGG and GO}
+
+\begin{table}[H]
+\centering
+\caption{\textbf{Pathway membership prediction (KEGG\_2021\_Human, few-shot AUROC).}}
+
+\smallskip
+{\footnotesize \noindent \textbf{Notes.} 288 KEGG\_2021\_Human pathways fall in the 20--300-gene size range; of these, 224 (5,000-gene graph) and 254 (13,881-gene graph) have sufficient member overlap ($\geq 30$ genes) to be evaluated. Panel (a) compares scales and reference feature sets at seed 42; panel (b) reports the per-training-seed values behind the multi-seed KEGG column of Table~1. All standard deviations are sample standard deviations ($n-1$). The per-seed differences quoted in the main text are stored in \texttt{results/kegg\_\allowbreak per\_\allowbreak seed.\allowbreak json} (\texttt{scripts/97\_\allowbreak kegg\_\allowbreak per\_\allowbreak seed.\allowbreak py}).}
+
+\label{tab:s11}
+\footnotesize
+\textbf{(a) Scale and reference comparison (seed 42, $K_{\text{seed}}=20$ unless stated).}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Model} & \textbf{Scale} & \textbf{AUROC $K_{\text{seed}}=5$} & \textbf{AUROC $K_{\text{seed}}=20$} \\
+\midrule
+graph encoder (NAMR-only) & 5,000 genes / 8M & 0.800 $\pm$ 0.094 & 0.839 $\pm$ 0.076 \\
+ESM-2 (8M) & 5,000 genes & 0.598 $\pm$ 0.083 & 0.599 $\pm$ 0.090 \\
+PCA input & 5,000 genes & 0.712 $\pm$ 0.099 & 0.779 $\pm$ 0.083 \\
+graph encoder (NAMR-only) & 13,881 genes / 650M & 0.854 $\pm$ 0.076 & \textbf{0.879} $\pm$ 0.061 \\
+ESM-2 (650M) & 13,881 genes & 0.730 $\pm$ 0.103 & 0.795 $\pm$ 0.088 \\
+Random & --- & 0.502 $\pm$ 0.016 & 0.504 $\pm$ 0.030 \\
+\bottomrule
+\end{tabular}
+
+\smallskip
+\textbf{(b) Per-arm, per-training-seed KEGG AUROC at $K_{\text{seed}}=20$ (5,000-gene graph, 8M features, identical protocol to panel (a)).}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\textbf{Arm} & \textbf{Seed 42} & \textbf{Seed 7} & \textbf{Seed 123} & \textbf{Seed 21} & \textbf{Seed 99} & \textbf{Mean $\pm$ SD} \\
+\midrule
+NAMR-only & \textbf{0.839} & \textbf{0.841} & \textbf{0.835} & \textbf{0.818} & \textbf{0.833} & \textbf{0.833 $\pm$ 0.009} \\
+CSP$+$NAMR & 0.674 & 0.757 & 0.556 & 0.558 & 0.544 & 0.618 $\pm$ 0.094 \\
+Full (NAMR$+$CSP$+$C3L) & 0.563 & 0.588 & 0.656 & 0.608 & 0.555 & 0.594 $\pm$ 0.041 \\
+CSP-only & 0.568 & 0.543 & 0.584 & --- & --- & 0.565 $\pm$ 0.021 \\
+NAMR-only, same-code MPS replication & 0.831 & 0.829 & 0.847 & 0.831 & 0.826 & 0.833 $\pm$ 0.008 \\
+Skip-decoder NAMR (diagnostic) & --- & 0.597 & --- & --- & --- & --- \\
+\bottomrule
+\end{tabular}
+
+{\footnotesize \noindent Seeds 21 and 99 of CSP-only are not archived, so that arm is reported with $n=3$; the MPS row is the same-code plain-decoder replication of \supptab{tab:s12} and differs from the CUDA row by at most $0.014$ in either direction (mean $+0.001$), so the endpoint is platform-robust.}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{\textbf{GO enrichment of NAMR-only clusters.} 20/21 clusters significantly enriched (FDR $<$ 0.05); representative top terms.}
+\label{tab:s8}
+\footnotesize
+\begin{tabular}{@{}llc@{}}
+\toprule
+\textbf{Cluster} & \textbf{Top GO term} & \textbf{adj. p} \\
+\midrule
+1 & Ribosome biogenesis & 7e-71 \\
+4 & RNA splicing & 5e-97 \\
+15 & DNA repair & 4e-90 \\
+14 & Cytoplasmic translation & 6e-130 \\
+0 & Chemical synaptic transmission & 2e-30 \\
+3 & Steroid metabolic process & 1e-25 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{\textbf{Cluster-enrichment control.} Identical K-means + over-representation protocol applied to four embedding sources; a cluster counts as enriched if at least one term reaches adjusted $p<0.05$ (GO protocol: Enrichr, GO\_Biological\_Process\_2023; KEGG protocol: local hypergeometric test against KEGG\_2021\_Human).}
+\label{tab:s12go}
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Embedding source} & \textbf{GO protocol} & \textbf{KEGG protocol} \\
+\midrule
+NAMR-only (graph-pretrained) & 20 / 21 & 20 / 21 \\
+Raw ESM-2 embeddings (no graph) & 21 / 21 & 19 / 21 \\
+PCA input geometry & n/a & 16 / 21 \\
+Random-init HGT output & 12 / 21 & 9 / 21 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\suppnotesection{GO enrichment analysis (details)}{sec:sn2}
+
+
+
+K-means ($K=21$, $n_\text{init}=10$, seed 42) on standardized NAMR-only embeddings; per-cluster over-representation analysis against GO\_Biological\_Process\_2023 (Enrichr via gseapy) with the full 5,000-gene list as background; a cluster counts as enriched if at least one term reaches adjusted $p<0.05$. \textbf{20 of 21 clusters (95\%) were significantly enriched}, with highly specific and biologically coherent terms: ribosome biogenesis (adj. p = 7e-71), RNA splicing (5e-97), DNA repair (4e-90), cytoplasmic translation (6e-130), chemical synaptic transmission (2e-30), and steroid metabolism (1e-25) (\supptab{tab:s8}). Feature controls under the identical protocol: raw ESM-2 embeddings enrich 21 of 21 clusters under the GO protocol and 19 of 21 under an equivalent local KEGG-based protocol, the PCA input geometry 16 of 21, and random-init HGT outputs 12 of 21 (GO protocol) and 9 of 21 (KEGG protocol) (\supptab{tab:s12}). On this coarse cluster-level metric the functional coherence is \textit{preserved} rather than improved: NAMR-only enriches 20 of 21 clusters, on par with (not above) the raw ESM-2 features (21 of 21 under GO, 19 of 21 under the local KEGG protocol), so GO supports retention of functional coherence, not a gain over the input embeddings; the KEGG 20-of-21 versus 19-of-21 difference is small and is not tested. No cluster-size-matched enrichment null was computed: the permuted-label control of \supptab{tab:s17} applies to the K-means \emph{assignment-recoverability} metric, not to these enrichment counts, and the feature controls quoted above (raw ESM-2, PCA input, random-init HGT) are the comparisons that bound the enrichment counts here. Because the enrichment calls are per-cluster and uncorrected across the 21 clusters, the count of enriched clusters is a descriptive summary rather than a tested claim. Together with the pathway-membership analysis (main text), the enrichment analyses confirm that the learned clusters correspond to known functional modules---an annotation-based functional evaluation of the learned representations (not a knowledge-source-independent validation; see the STRING--KEGG overlap caveat in the Limitations).
+
+\FloatBarrier
+
+
+
+\FloatBarrier
+
+
+\subsection{PAAD held-out cancer type}
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Full-scale (ESM-2 650M) and held-out experiments, with the artifact each value comes from.} Known-edge AUC is the zero-shot cosine probe; $\rho$ is the PAAD held-out Spearman correlation at $K=200$ over 30 splits; METABRIC is ER-status AUROC at $K=50$ over 30 paired splits. Values are stated with their reproduction status, which is catalogued per result in \texttt{results/reproduction\_\allowbreak status.\allowbreak json} (generated by \texttt{scripts/103\_\allowbreak reproduction\_\allowbreak status.\allowbreak py}): class A, re-evaluable from a released checkpoint; class B, regenerable only by retraining from the released configuration; class C, surviving as logs alone. Of the 19 catalogued results, 16 are class A, 1 is class B (the 650M known-edge evaluation, whose checkpoints are released but whose per-run log was not retained, so those rows are recovered from the sprint ledger \texttt{results/nmi\_\allowbreak sprint\_\allowbreak results.\allowbreak md}) and 2 are class C (the 21-cancer patient-graph run and one METABRIC arm whose checkpoint is not archived; both are flagged in their own tables and excluded from any reproduced range). Artifact paths are relative to the released repository. The raw-ESM-2-650M row is evaluated on the same standard 5,000-gene pair set as the pretrained 650M model (the ledger's 5,000-subset column); that baseline was not evaluated on the 13,881-gene pair set.}
+\label{tab:s22}
+\footnotesize
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Quantity} & \textbf{Setting} & \textbf{Value} & \textbf{Artifact} \\
+\midrule
+Known-edge AUC & NAMR-only, 650M, 5,000-gene set & 0.896 & \texttt{nmi\_\allowbreak sprint\_\allowbreak results.\allowbreak md} \\
+Known-edge AUC & NAMR-only, 650M, 13,881-gene graph & 0.887 & \texttt{nmi\_\allowbreak sprint\_\allowbreak results.\allowbreak md} \\
+Known-edge AUC & Full model, 650M, 5,000-gene set & 0.703 & \texttt{nmi\_\allowbreak sprint\_\allowbreak results.\allowbreak md} \\
+Known-edge AUC & Full model, 650M, MPS, seeds 7 / 123 & 0.735 / 0.668 & \texttt{rerun\_\allowbreak 650m\_\allowbreak plain/run.\allowbreak log} \\
+Known-edge AUC & raw ESM-2 650M embeddings & 0.671 & \texttt{nmi\_\allowbreak sprint\_\allowbreak results.\allowbreak md} \\
+K-means recoverability & raw ESM-2 650M embeddings & 0.411 & \texttt{nmi\_\allowbreak sprint\_\allowbreak results.\allowbreak md} \\
+KEGG AUROC ($K=20$) & NAMR-only 650M / ESM-2 650M & 0.879 / 0.795 & \texttt{kegg\_\allowbreak membership\_\allowbreak table.\allowbreak json} \\
+PAAD $\rho$ ($K=200$) & 8M, 20-cancer / 21-cancer & $0.262 \pm 0.029$ / $0.243 \pm 0.031$ & \texttt{paad\_\allowbreak rho\_\allowbreak namr20c.\allowbreak npy} / \texttt{\_\allowbreak namr21c.\allowbreak npy} \\
+PAAD $\rho$ ($K=200$) & 650M, 20-cancer / 21-cancer & $0.236 \pm 0.047$ / $0.244 \pm 0.051$ & \texttt{paad\_\allowbreak rho\_\allowbreak namr650\_\allowbreak *\_\allowbreak full.\allowbreak npy} \\
+PAAD $\rho$ ($K=200$) & ESM-2 baseline, 8M / 650M & $0.168 \pm 0.037$ / $0.139 \pm 0.042$ & \texttt{paad\_\allowbreak rho\_\allowbreak esm8m\_\allowbreak *.\allowbreak npy}, \texttt{paad\_\allowbreak rho\_\allowbreak esm650\_\allowbreak *\_\allowbreak full.\allowbreak npy} \\
+PAAD AUROC ($K=50$) & 20-cancer / 21-cancer & $0.591 \pm 0.029$ / $0.593 \pm 0.023$ & \texttt{paad\_\allowbreak transfer\_\allowbreak results.\allowbreak md} \\
+METABRIC AUROC ($K=50$) & graph encoder, full / NAMR-only / ESM-2 / random & 0.667 / 0.671 / 0.692 / 0.514 & \texttt{metabric\_\allowbreak rerun\_\allowbreak 20260918/} \\
+\bottomrule
+\end{tabular}}
+
+\end{table}
+
+\FloatBarrier
+
+
+\subsection{Drug response}
+
+\textbf{GDSC Drug Sensitivity.} GDSC2 fitted dose--response data (24Jul22 release) were downloaded from the Sanger FTP (https://ftp.sanger.ac.uk/pub/project/cancerrxgene/). Drug target genes were parsed from the PUTATIVE\_TARGET column; 139 of 286 drugs had at least one target gene in the 5,000-gene ESM-2 graph, yielding 119,956 drug--cell line pairs. Log-transformed IC50 values were used as regression targets.
+
+\begin{table}[H]
+\centering
+\caption{\textbf{Drug response prediction on GDSC2 (119,956 pairs, 139 drugs).} Mean R$^2$ over 30 paired random splits; K = training pairs. All graph encoder values are negative (prediction worse than the mean baseline), as are ESM/PCA at $K\geq 20$;the random-features baseline reaches a positive $R^2$ ($+0.134$) at $K=200$.}
+
+\smallskip
+{\footnotesize \noindent \textbf{Notes.} \textit{Protocol-scoped baselines} (same splits, seed 42): train-set-mean DummyRegressor R$^2$ $-0.004$ at K$=$200 (essentially 0 by construction); drug-identity one-hot R$^2$ $0.340$ and raw target-set multi-hot R$^2$ $0.338$ at K$=$200. Drug identity and target-set membership alone therefore carry substantial (between-drug potency) signal that the mean-target-embedding representation cannot exploit, so the negative result is specific to that representation rather than a claim that target-gene information cannot contribute to drug-sensitivity prediction. The pair-random split mixes known drugs and cell lines (not an unseen-drug test).}
+
+\label{tab:s6}
+\footnotesize
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{K} & \textbf{5} & \textbf{20} & \textbf{50} & \textbf{100} & \textbf{200} \\
+\midrule
+graph encoder embeddings & $-7.78$ & $-0.53$ & $-0.167$ & $-0.081$ & $-0.025$ \\
+Random features & $-0.42$ & $-0.21$ & $-0.259$ & $-0.125$ & $+0.134$ \\
+ESM-2 embeddings & $-0.69$ & $-0.94$ & $-1.000$ & $-0.689$ & $-0.202$ \\
+PCA input features & $-0.40$ & $-0.32$ & $-0.439$ & $-0.402$ & $-0.146$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+
+\noindent At K=50: graph encoder 95\% bootstrap CI $[-0.215, -0.125]$; graph encoder vs random $\Delta R^2 = +0.092$ (two-sided paired permutation test, $p = 0.016$); graph encoder vs ESM-2 $\Delta R^2 = +0.833$ ($p < 0.001$).
+
+\FloatBarrier
+
+
+
+\FloatBarrier
+
+
+\subsection{Patients and METABRIC}
+
+\begin{table}[H]
+\centering
+\caption{\textbf{Patient cancer-type classification learning curve (patient-level pretraining, P-NAMR).} Mean few-shot accuracy over 30 repeats; $K$ = training patients per cancer type (21 cancer types). Patient-level pretraining used 3 layers, 4 heads, 128 hidden units (500 epochs; checkpoint archived at cloud\_results/gfm\_patient\_e500.pt; the full-patient graph is rebuilt from the pan-cancer expression matrix, UCSC Xena).}
+\label{tab:s7}
+\footnotesize
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\textbf{K} & \textbf{1} & \textbf{2} & \textbf{5} & \textbf{10} & \textbf{20} & \textbf{30} \\
+\midrule
+Patient-level (P-NAMR) & 0.238 & 0.302 & 0.390 & 0.459 & 0.520 & 0.555 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+
+\noindent Reference baselines at $K=5$: graph encoder gene aggregation 0.29; ESM-2-only gene aggregation 0.67; random gene embeddings 0.72. Patient-level pretraining improves over graph encoder gene aggregation (+34\%) but remains below sequence-based set-fingerprint baselines, reflecting the graph over-smoothing trade-off discussed in the main text (see also \suppnote{sec:sn1} for the set-fingerprint mechanism).
+
+
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{figS2_patient_setfingerprint_tradeoff.pdf}
+\caption{\textbf{Patient cancer-type classification learning curve.} Few-shot accuracy of patient-level pretrained embeddings (P-NAMR, 3 layers) versus the number of training patients per cancer type ($K$; x-axis on a log$_2$ scale because $K$ is a count and equal spacing would misrepresent the multiplicative steps; ticks at $K=1,2,5,10,20,30$). Accuracy rises monotonically from 0.238 ($K=1$) to 0.555 ($K=30$); values are identical to Table~S7 (P-NAMR row) and read from results/patient\_fewshot\_acc.json. Patient-level pretraining beats gene aggregation (+34\% at $K=5$; dotted line 0.29) but remains below the sequence-based set-fingerprint baseline (ESM-2-only gene aggregation 0.67), illustrating the graph over-smoothing trade-off. The three horizontal reference lines come from a \emph{separate} local rebuild (5,000-gene ESM subgraph, 200 epochs): raw expression PCA (50 dims, 0.844), raw top-100-gene-set multi-hot (0.727) and an untrained random-init patient graph (0.546). They are not from the run that produced the curve, and the two groups differ in graph realisation and platform, so curve-to-line gaps are descriptive rather than a paired comparison. The paired, same-setup evidence for the over-smoothing reading comes from within the local rebuild itself, where the trained one-layer patient graph reaches 0.369 against 0.546 for the untrained graph on the identical cohort and splits (\suppnote{sec:sn1}). The uniform-chance line is $1/21=0.048$ (majority-class baseline 0.138; \supptab{tab:s15}). Curve: single run (seed 42, P-NAMR, 3 layers, full 21-cancer patient graph); reference lines: separate local rebuild (Methods, \suppnote{sec:sn1}).}
+\label{fig:s2}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{\textbf{METABRIC external validation (ER status, n=1,980; K=50 AUROC, 30 paired splits).}}
+
+\smallskip
+{\footnotesize \noindent \textbf{Notes.} \textit{Reproducibility note (2026-09 audit):} re-running the archived checkpoints reproduces the full-model and NAMR-only rows (0.667 and 0.671); the CSP$+$NAMR checkpoint used for the third row is not archived under that arm name, so that row is reported from the original run. A main-text value of 0.648 that appeared in an earlier draft came from an unversioned earlier artifact and has been replaced by the reproduced values. \textit{Note:} graph encoder MPS values were produced with an earlier decoder variant (skip-connected NAMR) and are omitted pending a same-code replication; the ESM-2 and random baselines are evaluation-side and platform-independent.}
+
+\label{tab:s9}
+\footnotesize
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Features} & \textbf{AUROC (CUDA)} & \textbf{AUROC (MPS)} \\
+\midrule
+graph encoder (full) & 0.667 & --- \\
+graph encoder (NAMR-only) & 0.671 & --- \\
+graph encoder (CSP$+$NAMR) & 0.641 & --- \\
+ESM-2 embeddings & \textbf{0.692} & 0.692 $\pm$ 0.032 \\
+Random features & 0.514 & 0.514 $\pm$ 0.019 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\suppnotesection{The set-fingerprint baseline mechanism}{sec:sn1}
+
+
+
+The patient-level baselines in Table S7 (ESM-2-only gene aggregation 0.67; random gene embeddings 0.72) are not chance-level ($1/21 \approx 0.05$): each patient is represented by the mean embedding of its top-100 expressed genes, and the \textit{identity} of this gene set is tissue-distinctive. Even random gene vectors therefore carry tissue information after aggregation. We verified this directly with real TCGA expression data (the two cancer types available in our local copy): using only the top-100 expressed genes per patient---no expression values, no trained features---random unit vectors classify PAAD versus SKCM at 0.954 $\pm$ 0.021 (5-shot logistic regression, 30 splits; ESM-2 vectors: 0.846 $\pm$ 0.061). Two additional feature-only baselines on the same 2-cancer subset quantify the mechanism: a raw top-gene-set multi-hot (binary membership of the top-100 expressed genes, no magnitudes) reaches 0.964 $\pm$ 0.016, and a raw expression PCA (50 dims) reaches 0.690 $\pm$ 0.052. The gene-set identity alone therefore almost fully separates the two cancer types, confirming the set-fingerprint mechanism. On the full 21-cancer task (local rebuild of the patient graph), the same baselines give: raw top-100-gene-set multi-hot 0.727 $\pm$ 0.020, raw expression PCA 0.844 $\pm$ 0.017 (the strongest patient baseline), and an untrained (random-init) patient graph 0.546 $\pm$ 0.017---above the trained P-NAMR embeddings (0.39). Graph pretraining therefore does not add patient-level signal over the raw expression/gene-set baselines, and training degrades it relative to the untrained graph, consistent with the over-smoothing hypothesis. The high `random'' baseline in the 21-type task reflects this set-fingerprint signal; graph pretraining smooths gene embeddings toward functional similarity, which weakens set specificity and explains why patient-level graph-pretrained representations do not exceed these baselines.
+
+
+
+\FloatBarrier
+
+
+\subsection{GTEx tissue filtering}
+
+\begin{table}[H]
+\centering
+\caption{\textbf{Edges excluded by tissue-expression filtering (GTEx v8, STRING score $\geq$ 700).} An edge is excluded when at least one endpoint falls below the median-TPM threshold (operational definition, not direct evidence of functional absence). Threshold sensitivity at TPM $\in \{0.5, 1, 2, 5\}$ (excluded fraction): pancreas 0.35/0.41/0.48/0.65, liver 0.35/0.40/0.46/0.62, kidney 0.31/0.36/0.42/0.57, ovary 0.31/0.35/0.39/0.46, stomach 0.29/0.34/0.40/0.51, breast 0.28/0.32/0.37/0.45, lung 0.24/0.29/0.34/0.42. The excluded fraction grows with the threshold, so the ``28.6--40.5\%'' headline at TPM$\geq$1 is threshold-dependent. This is a normal-tissue filter, distinct from tumor-tissue network inference.}
+\label{tab:s10}
+\footnotesize
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Tissue} & \textbf{Edges kept} & \textbf{Removed} \\
+\midrule
+Breast & 320,758 & 32.3\% \\
+Lung & 338,572 & 28.6\% \\
+Colon & 328,122 & 30.8\% \\
+Liver & 284,854 & 39.9\% \\
+Stomach & 312,364 & 34.1\% \\
+Ovary & 309,322 & 34.7\% \\
+Kidney & 304,132 & 35.8\% \\
+Prostate & 328,204 & 30.7\% \\
+Pancreas & 282,090 & 40.5\% \\
+Skin & 324,092 & 31.6\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+
+
+\section{Reproducibility}
+
+\subsection{Seeds and platforms}
+
+\begin{table}[H]
+\centering
+\caption{\textbf{Same-code multi-seed ablation stability (known-edge AUC, plain-decoder NAMR).} All variants were retrained with the identical code version (plain-decoder NAMR; Methods) at seeds 42, 7 and 123;evaluation pairs are fixed (seed 42).}
+
+\smallskip
+{\footnotesize \noindent \textbf{Notes.} Checkpoint identity was verified after the 2026-09 audit by measuring the decoder input width on each checkpoint and re-evaluating every per-seed value (\supptab{tab:s23}): all headline values come from plain-decoder runs. The single documented exception is the CSP-only seed-42 checkpoint, which came from a run launched with the skip-decoder flag while the NAMR objective was disabled in that arm (its NAMR loss is identically zero throughout), so the untrained NAMR head cannot affect the encoder and the CSP-only values are unaffected. Note the full model's sensitivity to initialization: identical AUC (0.575) at seeds 42 and 7 but 0.716 at seed 123; the C3L effect flips sign across seeds (main text, ablation section). MPS replication (same code and plain-decoder NAMR, Apple M4 Max): full model 0.7077/0.7078/0.5559/0.5630 over four runs (seed 42 twice, seeds 7 and 123; the two seed-42 runs agree to four decimals); NAMR-only five-seed replication 0.8621/0.8438/0.8571/0.7745/0.8363 (mean 0.835 $\pm$ 0.035) on MPS; the CUDA five-seed NAMR-only replication (seeds 42, 7, 123, 21, 99) reaches 0.8578/0.8262/0.8175/0.7772/0.8749, mean 0.8307 $\pm$ 0.0379. Clustering accuracy is platform-robust at matched seeds (full model, seed 42: 0.852 on CUDA versus 0.862--0.864 on MPS). CUDA values are the primary numbers. Every mean in this table is accompanied by a sample standard deviation (denominator $n-1$); the per-seed values, the per-arm means and both standard-deviation conventions are regenerated as \texttt{results/known\_\allowbreak edge\_\allowbreak multiseed.\allowbreak json} by \texttt{scripts/102\_\allowbreak known\_\allowbreak edge\_\allowbreak per\_\allowbreak seed.\allowbreak py}, which imports the evaluation probe from \texttt{50\_\allowbreak eval\_\allowbreak checkpoint.\allowbreak py} so the protocol cannot drift. The random-init HGT reference is environment-sensitive (cluster accuracy 0.5755 $\pm$ 0.0186 in the CUDA-era evaluation vs 0.4882 $\pm$ 0.0220 on the pinned sklearn 1.9.0 stack with seeded initialization; known-edge AUC is stable at 0.6625). The enrichment-control counts and the cluster-accuracy rows were regenerated from the seeded random-init embedding (KEGG 9/21; GO 12/21 unchanged).}
+
+\label{tab:s12}
+\footnotesize
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\textbf{Variant} & \textbf{Seed 42} & \textbf{Seed 7} & \textbf{Seed 123} & \textbf{Seed 21} & \textbf{Seed 99} & \textbf{Mean $\pm$ SD} \\
+\midrule
+Full (NAMR+CSP+C3L) & 0.575 & 0.575 & 0.716 & 0.554 & 0.545 & 0.593 $\pm$ 0.070 \\
+NAMR-only & 0.858 & 0.826 & 0.8175 & 0.7772 & 0.8749 & 0.8307 $\pm$ 0.0379 \\
+NAMR-only (MPS, same code) & 0.862 & 0.844 & 0.857 & 0.775 & 0.836 & 0.835 $\pm$ 0.035 \\
+CSP-only & 0.524 & 0.506 & 0.513 & --- & --- & 0.514 $\pm$ 0.009 \\
+CSP+NAMR & 0.714 & 0.791 & 0.568 & 0.552 & 0.551 & 0.635 $\pm$ 0.111 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+
+
+\subsection{Configuration, runs and artifact mapping}
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Paper arm names mapped to the released checkpoint files, with file hashes and the decoder each checkpoint actually contains.}}
+
+\smallskip
+{\footnotesize \noindent \textbf{Notes.} Decoders were measured on each checkpoint, not read from file names (NAMR head first-layer input width: 256 plain, 512 skip). Paths are relative to \texttt{results/}. File names are not unique identifiers: three checkpoints that share one file name---one each under \texttt{ablation\_\allowbreak real/}, \texttt{rerun\_A/} and \texttt{rerun\_B/}---carry three different SHA256 values, and two further checkpoints that share a second file name sit under \texttt{namr5\_\allowbreak skip\_\allowbreak decoder\_\allowbreak DISCARDED/} (skip decoder, discarded) and \texttt{server\_\allowbreak cuda\_\allowbreak namr5/} (plain decoder, reported); likewise \texttt{rerun\_\allowbreak 650m/} holds skip runs and \texttt{rerun\_\allowbreak 650m\_\allowbreak plain/} the reported plain runs. The authoritative registry, regenerated by \texttt{scripts/98\_\allowbreak audit\_\allowbreak checkpoints.\allowbreak py}, is \texttt{results/checkpoint\_\allowbreak registry.\allowbreak json}, which records SHA256, measured decoder and run ID (\texttt{args.out}) per checkpoint. All headline arms use plain-decoder checkpoints, re-verified per seed against Tables~S1 and S12; the single exception is the CSP-only seed-42 checkpoint, launched with the skip flag while the NAMR objective was disabled (its NAMR loss is identically zero throughout), so the untrained head cannot affect that encoder. Seeds 21 and 99 are not archived for CSP-only, which is reported with $n=3$. Same-arm checkpoints behind no tabulated value (\texttt{ablation\_\allowbreak real/full\_\allowbreak s7.\allowbreak pt}, \texttt{csp\_\allowbreak namr\_\allowbreak s7.\allowbreak pt}, \texttt{csp\_\allowbreak namr\_\allowbreak s123.\allowbreak pt}, \texttt{ablation\_\allowbreak real/csp\_\allowbreak namr\_\allowbreak rewired\_\allowbreak s123.\allowbreak pt} [f999d08625e6]; \texttt{ablation\_\allowbreak real/csp\_\allowbreak namr\_\allowbreak rewired\_\allowbreak s42.\allowbreak pt} [88c461dc1a5e]; \texttt{ablation\_\allowbreak real/csp\_\allowbreak namr\_\allowbreak rewired\_\allowbreak s7.\allowbreak pt} [eb10d8980372]; \texttt{ablation\_\allowbreak real/csp\_\allowbreak namr\_\allowbreak eqvol\_\allowbreak s123.\allowbreak pt} [1bb92054734e]; \texttt{ablation\_\allowbreak real/csp\_\allowbreak namr\_\allowbreak eqvol\_\allowbreak s42.\allowbreak pt} [9ff5a0a6aa16]; \texttt{ablation\_\allowbreak real/csp\_\allowbreak namr\_\allowbreak eqvol\_\allowbreak s7.\allowbreak pt} [bc4b15beff41]) reproduce 0.5683, 0.5131, 0.6111 and the control values respectively; none of them enters Table~1.}
+
+\label{tab:s23}
+\footnotesize
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.20\textwidth}p{0.11\textwidth}p{0.55\textwidth}c@{}}
+\toprule
+\textbf{Arm (as named in the text)} & \textbf{Seeds} & \textbf{Checkpoint path [SHA256$_{12}$]} & \textbf{Decoder} \\
+\midrule
+Full (NAMR+CSP+C3L) & 42, 7, 123, 21, 99 & \texttt{ablation\_\allowbreak real/full.\allowbreak pt} [2623f1c17589]; \texttt{ablation\_\allowbreak real/full\_\allowbreak s7o.\allowbreak pt} [ebc1eeaea467]; \texttt{ablation\_\allowbreak real/full\_\allowbreak legacy\_\allowbreak s123.\allowbreak pt} [c457801c589e]; \texttt{ablation\_\allowbreak real/full\_\allowbreak legacy\_\allowbreak s21.\allowbreak pt} [0a24091c7fe9]; \texttt{ablation\_\allowbreak real/full\_\allowbreak legacy\_\allowbreak s99.\allowbreak pt} [33e8eee19b83] & plain \\
+NAMR-only (CUDA, headline) & 42, 7, 123, 21, 99 & \texttt{ablation\_\allowbreak real/namr\_\allowbreak only.\allowbreak pt} [e4865c25d3dc]; \texttt{ablation\_\allowbreak real/namr\_\allowbreak only\_\allowbreak s7o.\allowbreak pt} [6c7cbaafc87b]; \texttt{server\_\allowbreak cuda\_\allowbreak namr5/namr\_\allowbreak only\_\allowbreak s123.\allowbreak pt} [046efe654f6b]; \texttt{server\_\allowbreak cuda\_\allowbreak namr5/namr\_\allowbreak only\_\allowbreak s21.\allowbreak pt} [b1dbc56ec727]; \texttt{server\_\allowbreak cuda\_\allowbreak namr5/namr\_\allowbreak only\_\allowbreak s99.\allowbreak pt} [cbdab62bb4b7] & plain \\
+NAMR-only (MPS, same code) & 42, 7, 123, 21, 99 & \texttt{repro\_\allowbreak plain/namr\_\allowbreak only\_\allowbreak plain\_\allowbreak s42.\allowbreak pt} [658d908c1a7d]; \texttt{\_s7.pt} [1c67551b5969]; \texttt{\_s123.pt} [758dfa5b6364]; \texttt{\_s21.pt} [f9e739a47c83]; \texttt{\_s99.pt} [1bae2e2f59e5] & plain \\
+CSP-only & 42 (skip flag, NAMR off), 7, 123 & \texttt{ablation\_\allowbreak real/csp\_\allowbreak only.\allowbreak pt} [39de721b6385]; \texttt{ablation\_\allowbreak real/csp\_\allowbreak only\_\allowbreak s7.\allowbreak pt} [7c814eeb9f6e]; \texttt{ablation\_\allowbreak real/csp\_\allowbreak only\_\allowbreak s123.\allowbreak pt} [18f154c810e1] & skip (42) / plain (7, 123) \\
+CSP+NAMR & 42, 7, 123, 21, 99 & \texttt{ablation\_\allowbreak real/csp\_\allowbreak namr\_\allowbreak legacy\_\allowbreak s42.\allowbreak pt} [ca0b6a98921e]; \texttt{\_s7.pt} [2f79b24db5aa]; \texttt{\_s123.pt} [c110cf568af7]; \texttt{\_s21.pt} [afd4768a78eb]; \texttt{\_s99.pt} [0c69a38eb862] & plain \\
+Full (MPS, same code) & 42 (twice), 7, 123 & \texttt{repro\_\allowbreak plain/full\_\allowbreak plain\_\allowbreak s42a.\allowbreak pt} [41d4f8b7da9b]; \texttt{\_s42b.pt} [1018b99f78c1]; \texttt{\_s7.pt} [e0bd8c0abe19]; \texttt{\_s123.pt} [88388b512053] & plain \\
+NAMR-only, unstandardized (diagnostic) & 42 & \texttt{ablation\_\allowbreak real/namr\_\allowbreak only\_\allowbreak unstd.\allowbreak pt} [e3474fcb6794] & plain \\
+Skip-decoder diagnostic (Fig.~S3 bar) and its discarded seed-123 twin & 7, 123 & \texttt{ablation\_\allowbreak real/namr\_\allowbreak only\_\allowbreak s7.\allowbreak pt} [6c218a7c0d40]; \texttt{namr5\_\allowbreak skip\_\allowbreak decoder\_\allowbreak DISCARDED/namr\_\allowbreak only\_\allowbreak s123.\allowbreak pt} [6070b8e29532] & skip \\
+Full / NAMR-only, 650M (seeds 7 and 123 of the full model are the plain reruns; the same seeds under \texttt{rerun\_\allowbreak 650m/} are skip runs and are not reported) & 42, 7, 123 & \texttt{ablation\_\allowbreak real/full\_\allowbreak 650.\allowbreak pt} [e1afc4137039]; \texttt{ablation\_\allowbreak real/namr\_\allowbreak only\_\allowbreak 650.\allowbreak pt} [07c9b491ed32]; \texttt{rerun\_\allowbreak 650m\_\allowbreak plain/full650\_\allowbreak plain\_\allowbreak s7.\allowbreak pt} [a6f099bb682d]; \texttt{rerun\_\allowbreak 650m\_\allowbreak plain/full650\_\allowbreak plain\_\allowbreak s123.\allowbreak pt} [8c2bcbed6697] & plain \\
+Held-out 20-cancer (8M / 650M) & 42 & \texttt{ablation\_\allowbreak real/full\_\allowbreak 20c.\allowbreak pt} [ab4c63dccfee]; \texttt{ablation\_\allowbreak real/namr\_\allowbreak only\_\allowbreak 20c.\allowbreak pt} [74bdd10ea09a]; \texttt{ablation\_\allowbreak real/full\_\allowbreak 650\_\allowbreak 20c.\allowbreak pt} [23ba22946118]; \texttt{ablation\_\allowbreak real/namr\_\allowbreak only\_\allowbreak 650\_\allowbreak 20c.\allowbreak pt} [085f16198fcf] & plain \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\FloatBarrier
+
+
+
+
+All results were generated on an NVIDIA CUDA server (five fixed seeds: 42, 7, 123, 21, 99; Python 3.11, PyTorch 2.x, PyTorch Geometric 2.x). The MPS replication used an Apple M4 Max (Python 3.11, PyTorch 2.13.0, PyTorch Geometric 2.8.0.post1, MPS backend) with the same code, decoder, and parameters (plain-decoder NAMR; full model: four runs at seeds 42, 42, 7 and 123; NAMR-only: five runs at seeds 42, 7, 123, 21 and 99; \supptab{tab:s12}); every reported result carries a reproduction status in \texttt{results/reproduction\_\allowbreak status.\allowbreak json} (class A: re-evaluable from a released checkpoint; class B: regenerable only by retraining from the released configuration; class C: surviving as logs alone), and the fully pinned environment file for the MPS replication is released in the code repository, whereas for the CUDA server only the major versions were logged (Python 3.11, PyTorch 2.x, PyTorch Geometric 2.x), so no exact CUDA-side library versions are claimed. Total wall-clock time for the study was approximately 85--90 h across both machines; this is wall-clock time, not device-hours, and per-run durations are approximate, because runs were not instrumented with timing records (the run ledger contains no timing fields and the per-run logs are not retained), so a breakdown into main experiments, diagnostics, reruns and per-platform device time is not recoverable from the released tree. The K-means assignment-recoverability diagnostic is platform-robust at matched seeds (full model at seed 42: 0.852 on CUDA versus 0.862--0.864 on MPS) and varies with seed as expected (0.74--0.88 across same-code runs), so this diagnostic is compared at matched seeds. PPI-derived AUC is the more variable endpoint: it differs between platforms at matched seeds (full model at seed 42: 0.575 on CUDA versus 0.708 on MPS) and spans overlapping ranges across seeds (full model 0.545--0.716 over five seeds on CUDA versus 0.556--0.708 over four runs on MPS; at full scale (13,881 genes, ESM-2 650M) the full model's known-edge AUC on the standard 5,000-gene set is 0.703 on CUDA versus 0.702 $\pm$ 0.047 over two same-code MPS runs, seeds 7 and 123), while NAMR-only known-edge AUC is stable across platforms (0.831 $\pm$ 0.038 over five seeds on CUDA, including 0.842 $\pm$ 0.022 over seeds 42 and 7, versus 0.835 $\pm$ 0.035 over five same-code seeds on MPS). Two same-code MPS runs at seed 42 gave nearly identical full-model known-edge AUC (0.7077 and 0.7078), consistent with---but not proof of---deterministic training at fixed seed; the large same-seed spread reported in an earlier version of this section (0.534 versus 0.713) was produced with a different decoder variant (the skip-connected diagnostic decoder of the main-text skip-decoder diagnostic section) and is not reproduced by the code used throughout this study. All qualitative conclusions---NAMR-only achieves the highest relative PPI performance, CSP-only collapses the embedding to a low-dimensional subspace, C3L did not exploit the detectable target information under the tested settings and is seed-sensitive, recoverability gains are robust---hold across platforms. The CUDA results are the primary numbers, with MPS as same-code replication (full per-platform table in \supptab{tab:s12}). We therefore report known-edge recovery and pathway-membership prediction as the fixed-target endpoints, with multi-platform replication given their platform sensitivity, and treat K-means recoverability as a stable self-consistency diagnostic. Three distinct sources of variability are reported separately throughout, and each ``mean $\pm$ SD'' states its unit: (i) between-seed variability across pretraining runs (SD over $n$ seeds, as in Table~1 and \supptab{tab:s12}); (ii) within-representation variability across few-shot/data splits at a fixed checkpoint (SD over 30 splits, as in \supptabs{tab:s6}, S9 and S15); and (iii) between-item variability across pathways/genes/patients (SD over items, as in \supptab{tab:s11}). A ``mean $\pm$ SD'' therefore denotes the seed unit unless stated otherwise, and the 30 overlapping random splits are a sensitivity to the split at a fixed representation, not 30 independent cohorts or 30 independent pretraining runs. Code, seeds, and data versions are provided for independent replication.
+
+
+\subsection{Resource budget}
+
+All pretraining and evaluation experiments ran on an NVIDIA CUDA GPU server (Python 3.11, PyTorch 2.x, PyTorch Geometric 2.x; for the CUDA server only the major versions were logged and no exact library versions are claimed; see main-text Methods), with replication on an Apple M4 Max (Python 3.11, PyTorch 2.13.0, PyTorch Geometric 2.8.0.post1, MPS backend). A 500-epoch run on the 5,000-gene graph completes in approximately 2.2 hours; on the 13,881-gene graph in approximately 6.9 hours; the PAAD patient-graph run (300 epochs) in approximately 3.3 hours. Total wall-clock time across all experimental configurations was approximately 85--90 hours; this is wall-clock time rather than device-hours, and because runs were not instrumented with timing records (the run ledger carries no timing fields and per-run logs were not retained) neither a breakdown into main experiments, diagnostics and reruns nor a per-platform device-time split is recoverable, so the per-run figures above are approximate. Checkpoints are saved every 25 epochs and training resumes from the latest checkpoint after interruption (crash-safe; see launch scripts in the code repository).
+\FloatBarrier
+
+
+\section{Supplementary Discussion}
+
+
+
+\subsection{C3L Target--Feature Mismatch}
+
+The C3L loss remained at the random InfoNCE baseline ($\ln 21 \approx 3.04$) in every configuration, with real expression-derived targets. A direct probe of the input features (multinomial logistic regression and $k$-NN, $k=15$, cosine, on the ESM-2 5000 $\times$ 256 graph input and on raw 320-dimensional standardized embeddings) shows that the top-1 cancer-type target is only weakly recoverable from the features: top-1 accuracy 0.195--0.221 across readouts versus 0.086 for a row-shuffled feature control, against top-1 accuracy baselines of 0.138 (majority class), 0.082 (class-frequency random) and 0.048 (uniform $1/21$); the balanced-accuracy chance level ($1/15 = 0.067$ for the 15 classes present) is a different metric and is not compared with those values (\supptab{tab:s15}). The strong redundancy interpretation---that the ESM-2 embeddings already encode the tissue-specific information---is therefore not supported; the no-learning result reflects a prototype degeneracy rather than a feature-signal weakness: a C3L head trained on the frozen features with freely learned cancer prototypes reduces the loss from $\ln 21$ to 0.002, and the complete-bipartite gene--cancer wiring makes all 21 cancer-node embeddings identical (pairwise cosine 1.000, per-dimension std 0; \supptab{tab:s20}). Notably, although C3L never learned, it provided no consistent benefit to joint training: over five same-code seeds its effect on known-edge AUC ranged from strongly negative (seeds 42 and 7: Full 0.575 vs CSP+NAMR 0.714/0.791) to positive (seed 123: 0.716 vs 0.568), with neutral outcomes at seeds 21 and 99, so the arm means show no statistically detectable difference (Full 0.593 $\pm$ 0.070 vs CSP+NAMR 0.635 $\pm$ 0.111; Table S12). This is the absence of a detectable effect, not evidence of equivalence: with five same-code seeds the two-sided sign-permutation test has a minimum attainable $p = 2/2^{5}$, and no equivalence margin was pre-specified (main-text Methods, Statistical protocol). We recommend monitoring task-level losses and reporting seed-level replication for auxiliary tasks that do not learn.
+
+\subsection{Patient-Level Pretraining}
+
+We constructed patient--gene expression edges (top-100 expressed genes per patient) and enabled patient-level pretraining (P-NAMR with the same plain decoder as gene NAMR; 3 layers, 4 heads, 128 hidden units to fit GPU memory). Patient embeddings achieve a 5-shot cancer-type classification accuracy of 0.39 (Table~S7), a +34\% improvement over the gene-aggregation baseline (0.29). However, this remains below sequence-based set-fingerprint baselines (ESM-2-only gene aggregation 0.67; random 0.72). This is consistent with a protocol-dependent trade-off: graph pretraining smooths gene embeddings toward functional similarity---beneficial for gene-level tasks such as known-edge recovery and clustering---but degrades the ``set fingerprint'' signal on which patient-level gene aggregation relies. Patient-level pretraining (P-NAMR) partially recovers this signal by learning patient-specific representations directly.
+
+\end{document}
+
+
+\subsection{Limitations (full list)}
+\label{sec:sn_lim}
+
+(i) Multi-seed variance: the NAMR-primary and CSP low-rank-collapse findings are stable across seeds 42, 7, 123, 21 and 99, but the C3L-interference effect is dominated by seed variance even in the same-code comparison (it degraded known-edge AUC at seeds 42 and 7, improved it at seed 123, and was neutral at seeds 21 and 99; \supptab{tab:s12}); we therefore treat it as a cautionary, not robust, effect. (ii) The gene--cancer association edges connect every gene to every cancer type (no expression threshold), so this edge type carries no specificity information; thresholded edges would strengthen the graph and would also make the held-out cancer-type comparison more informative. (iii) Drug response is limited to 49\% of GDSC drugs (target overlap with the 5,000-gene subgraph); the negative result is scoped to the target-gene-embedding readout rather than being a property of the target genes themselves, since the drug-identity one-hot and target-set multi-hot baselines reach $R^2$ 0.340 and 0.338 at $K=200$ on the same splits (\supptab{tab:s6}). (iv) Patient-level pretraining is functional at the engineering level (loss convergence on the PAAD patient graph) and reaches 5-shot accuracy 0.39 on the 21-cancer task, but remains below set-fingerprint baselines (ESM-2-only gene aggregation 0.67; random gene embeddings 0.72, which already carry tissue identity through the expressed-gene set); this is a protocol-dependent trade-off consistent with the smoothing behaviour described above, rather than a general property of patient-level learning. (v) Our model (3.89M parameters, 13,881 genes) is far smaller than sequence foundation models; we therefore frame this work as a pretraining study on molecular networks rather than a ``foundation model'' per se. (vi) All data are TCGA/STRING/GDSC/METABRIC/GTEx; additional independent cohorts (e.g., ICGC) and tissue-specific graph construction (rather than post-hoc edge filtering) remain future work. (vii) The STRING database channel incorporates KEGG pathway co-membership into its association scores, so the KEGG pathway-membership evaluation shares a knowledge source with the pretraining graph; it is an annotation-based functional evaluation rather than a fully independent external validation. Recomputing the STRING combined score without the curated-database channel drops $\sim$20\% of the high-confidence edges below the 0.7 threshold (106,234 of 520,330 under a direct-channel recomputation), quantifying the overlap; residual score-calibration dependence remains even after removing that channel. GO enrichment is likewise annotation-based, and its dependence on the same curated sources as STRING (GO annotations are one channel of the STRING association score) is not quantified to the same depth as the KEGG overlap above. (viii) CSP negatives are sampled uniformly at random from non-adjacent gene pairs, so the task is easier than degree-matched or hub-restricted negative sampling and the CSP-only arm's low rank may partly reflect that choice; degree-matched and hub-restricted negatives are used for the held-out edge evaluation (\supptab{tab:s18}a) but not for pretraining. (ix) The tissue-expression analysis uses GTEx v8 \emph{normal}-tissue medians while the network is built from TCGA \emph{tumour} cohorts; normal and tumour tissue differ systematically in expression and co-expression, so the excluded-edge fractions quantify a normal-tissue filter rather than tumour-specific network rewiring. (x) Six message-passing layers on a graph whose trivial neighbour averaging already saturates the cosine probes means the encoder may itself be subject to over-smoothing; the depth dependence is documented for the patient graphs (1/3/6 layers, Section~\ref{sec:boundary}) but not swept for the gene graph. (xi) Absolute AUC values are platform-sensitive at matched seeds (full model at seed 42: 0.575 CUDA vs 0.708 MPS), so cross-platform comparisons are reported as rank replication rather than as effect-size replication. (xii) The CSP head scores an ordered pair representation, and positive pairs are canonically ordered ($i<j$) while negative pairs are not, so the learned score is asymmetric and endpoint order is a nuisance factor the head could exploit; the reported CSP-based numbers are for that ordering, and a symmetrised variant was not trained (Methods). (xiii) Provenance is partial rather than complete: no input data file carries a recorded download timestamp or checksum, no version string is recorded for the Xena expression, copy-number or phenotype files, and the graph build's intermediate exclusion counts were emitted to standard output rather than persisted, so the released tree reproduces the 13,881-gene graph and the 6,273-patient set from the pinned inputs but not the per-step filter accounting (Methods). (xiv) The effective-rank diagnostic that supports the CSP collapse claim is reported for three CSP-only seeds and five NAMR-only seeds (\supptab{tab:s20}a and \texttt{results/control/geometry\_\allowbreak cross\_\allowbreak seed.\allowbreak json}); the between-arm separation is present at every pair of seeds, but the absolute effective rank of NAMR-only ranges from 25 to 52 across seeds, so the statistic separates the arms ordinally and should not be read as a calibrated dimensionality scale. The supervised-probe column alongside it remains a single-seed (seed 42) reading. (xv) The METABRIC evaluation uses one weighting scheme (expression-weighted mean of gene embeddings) against language-model and random baselines only; a raw-expression-weighting predictor is not included as a baseline, and the released matrix is already gene-symbol-indexed, so probe-to-gene collapse is not reproduced by the validation script (Methods).
+
+% ============================================================
+
+\end{document}
