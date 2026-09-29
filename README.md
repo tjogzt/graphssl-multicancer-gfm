@@ -5,6 +5,9 @@ Task Design Principles and the Role of Protein Language Model Features**
 
 > *Cell Reports Methods (Methods Track), 2026 — Open-source reproduction package*
 
+> 🌐 **[中文 README · Chinese version](./README_zh-CN.md)** | 📖 This is the English document  
+> ☝️ 点击上方「中文 README」切换到中文版 / Click the link for the Chinese translation
+
 ---
 
 ### 🛡️ Quick Status Board
@@ -221,3 +224,7 @@ Alternatively, click the **Cite this repository** widget on the right sidebar of
 ## 🛡️ License
 
 MIT License — see [`LICENSE`](./LICENSE). Correspondence and pull requests: open an issue or email the corresponding author, Tao Zhu (<zhutao@tjh.tjmu.edu.cn>).
+
+---
+
+> 🌐 [返回 **中文 README** · Chinese version](./README_zh-CN.md) | Last updated: 2026-09-30
