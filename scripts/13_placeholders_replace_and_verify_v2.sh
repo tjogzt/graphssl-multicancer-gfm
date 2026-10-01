@@ -50,8 +50,8 @@ done
 # ================================================================
 # [A · DOI block (5)]
 OSF_DOI_SHORT="XXXXX"                                  # 5 chars, e.g. "KT6P2" (from osf.io/<xxxxx>). Replaces OSF.IO/XXXXX everywhere.
-ZENODO_B1_CODE_DOI="10.5281/zenodo.TBD1"               # Reserve DOI at Zenodo → Deposit B1 (code + scripts)
-ZENODO_B2_DATA_DOI="10.5281/zenodo.TBD2"               # Reserve DOI at Zenodo → Deposit B2 (data + embeddings + checkpoints)
+ZENODO_B1_CODE_DOI="10.5281/zenodo.23074742"           # Deposition B1 CODE: https://zenodo.org/deposit/23074742  (reserved 2026-10-01, access=restricted, PI to publish post-acceptance)
+ZENODO_B2_DATA_DOI="10.5281/zenodo.23074744"           # Deposition B2 DATA: https://zenodo.org/deposit/23074744  (reserved 2026-10-01, embargoed 2027-06-30; lite payload 65MB shipped: processed pt + manifest + download R script. PI drag-drop 8.7G raw TCGA/ tissue ppi post-acceptance, or let users rebuild via --mode full)
 CRM_METHODS_PAPER_DOI="10.1016/j.crmeth.2026.TBD2"     # FROM editor, post-acceptance
 SWH_DIR_ID="swh:1:dir:TBD00000000000000000000000000000000000000"  # swh:1:dir:<40 lowercase hex>
 
@@ -225,6 +225,14 @@ if [[ "$MODE" == "apply" ]]; then
     gsub_fixed "$F" "10.5281/zenodo.TBD1"                           "${ZENODO_B1_CODE_DOI}"                       "A2_ZENODO_B1"
     gsub_fixed "$F" "10.5281/zenodo.TBD2"                           "${ZENODO_B2_DATA_DOI}"                       "A3_ZENODO_B2"
     gsub_fixed "$F" "10.1016/j.crmeth.2026.TBD2"                    "${CRM_METHODS_PAPER_DOI}"                    "A4_CRM_DOI"
+    # A5: Free-text "Zenodo DOI TBD" appears in archive/manuscript_stale/main.tex L397 (Code Availability table, scripts 01-107).
+    # Replace only in .tex files with a proper LaTeX \href + \path hyperlink pointing to the B1 code deposition DOI.
+    if [[ "$F" == *.tex ]]; then
+      gsub_fixed "$F" \
+        "Zenodo DOI TBD" \
+        "\\href{https://doi.org/${ZENODO_B1_CODE_DOI}}{\\path{${ZENODO_B1_CODE_DOI}}}" \
+        "A5_FREE_ZENODO_TBD_MAINTEX"
+    fi
     gsub_fixed "$F" "swh:1:dir:TBD"                                 "${SWH_DIR_ID}"                               "A5_SWH"
   done
   # -------- SHA block (B1-2): only run when PI has filled REAL values in wave-2 (not defaults) --------

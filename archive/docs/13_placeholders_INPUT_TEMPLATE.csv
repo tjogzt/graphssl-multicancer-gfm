@@ -1,8 +1,8 @@
 key,placeholder_pattern_or_location,example_real_value,current_status,replaced_files_count,notes
 DOIS_BLOCK__________________________,,,,,
 1__OSF_DOI_SHORT,OSF.IO/XXXXX (after 10.17605/OSF.IO/),KT6P2,❌ TBD XXXXX,6+,"README.md / README_zh-CN.md / CITATION.cff / manuscript/ 6+ locations. Get from osf.io → New Project → URL tail 5 chars."
-2__ZENODO_BUNDLE1_CODE_DOI,10.5281/zenodo.TBD1,10.5281/zenodo.13344567,❌ TBD zenodo.TBD1,8,"README.md (badge+cite) / CITATION.cff identifiers / repository-artifact field. Zenodo: Deposit → Reserve DOI button"
-3__ZENODO_BUNDLE2_DATA_DOI,10.5281/zenodo.TBD2,10.5281/zenodo.13344571,❌ TBD zenodo.TBD2,4,"README.md note / CITATION.cff identifiers[2]. Separate deposit for processed data + checkpoints."
+2__ZENODO_BUNDLE1_CODE_DOI,10.5281/zenodo.TBD1,10.5281/zenodo.23074742,✅ RESERVED 2026-10-01 (restricted, publish post-acceptance). HTML=https://zenodo.org/deposit/23074742,8,"README.md (badge+cite) / CITATION.cff identifiers / repository-artifact field. Zenodo: Deposit → Reserve DOI button"
+3__ZENODO_BUNDLE2_DATA_DOI,10.5281/zenodo.TBD2,10.5281/zenodo.23074744,✅ RESERVED 2026-10-01 (embargoed 2027-06-30). HTML=https://zenodo.org/deposit/23074744. Lite payload 65MB shipped (processed pt + R script + SHA manifest),5,"README.md note / CITATION.cff identifiers[2]. Separate deposit for processed data + checkpoints. 8.7GB raw TCGA/METABRIC/STRING can be dragged in portal post-acceptance OR regenerated via scripts/01-data_download.R --mode full."
 4__CRM_PAPER_DOI,10.1016/j.crmeth.2026.TBD2,10.1016/j.crmeth.2026.102345,❌ TBD 2026.TBD2,3,"README.md bibtex / CITATION.cff identifiers[0]. ONLY AVAILABLE post-acceptance (editor sends)."
 5__OSF_FULL_DOI_PREFIX,10.17605/OSF.IO/XXXXX,10.17605/OSF.IO/KT6P2,❌ TBD XXXXX,6,Duplicate of row 1 but the full DOI prefix form used in bibtex.
 6__SWH_SOFTWARE_HERITAGE,swh:1:dir:TBD,swh:1:dir:abcdef0123456789abcdef0123456789abcdef01,❌ TBD,2,"CITATION.cff identifiers[4] · manuscript cover_letter.tex. archive.softwareheritage.org/save → paste GitHub URL → wait 45 min email."
